@@ -58,7 +58,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     // TODO: Navigate to next screen after verification
     // Simulate verification delay
     Future.delayed(const Duration(seconds: 3), () {
-      // Navigate to next screen
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     });
   }
 
