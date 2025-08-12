@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'pages/onboarding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/verify_screen.dart';
+import 'screens/upload_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -53,6 +54,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const OnboardingScreen(),
         '/home': (context) => const HomeScreen(),
         '/verify': (context) => const VerifyScreen(),
+        '/upload': (context) => const UploadScreen(),
       },
       // Handle unknown routes
       onUnknownRoute: (settings) {

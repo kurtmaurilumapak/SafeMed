@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'upload_screen.dart';
 
 class VerifyScreen extends StatefulWidget {
   const VerifyScreen({super.key});
@@ -56,7 +57,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-
         title: const Text(
           'Upload Drug Images',
           style: TextStyle(
@@ -380,58 +380,11 @@ class _VerifyScreenState extends State<VerifyScreen> {
   }
 
   void _proceedWithVerification() {
-    // Show confirmation or navigate to camera/image picker
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Proceed with Verification'),
-          content: Text(
-            'You selected $_selectedMedicine for verification. Would you like to take a photo or select from gallery?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // TODO: Implement camera functionality
-                _openCamera();
-              },
-              child: const Text('Camera'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // TODO: Implement gallery functionality
-                _openGallery();
-              },
-              child: const Text('Gallery'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _openCamera() {
-    // TODO: Implement camera functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Opening camera for $_selectedMedicine verification...'),
-        backgroundColor: const Color(0xFF4285F4),
-      ),
-    );
-  }
-
-  void _openGallery() {
-    // TODO: Implement gallery functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Opening gallery for $_selectedMedicine verification...'),
-        backgroundColor: const Color(0xFF4285F4),
+    // Navigate directly to upload screen with selected medicine
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UploadScreen(selectedMedicine: _selectedMedicine),
       ),
     );
   }
