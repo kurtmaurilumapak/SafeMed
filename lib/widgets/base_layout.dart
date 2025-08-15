@@ -113,8 +113,13 @@ class _BaseLayoutState extends State<BaseLayout> {
           // Handle navigation based on index
           switch (index) {
             case 0:
-              if (ModalRoute.of(context)?.settings.name != '/') {
-                Navigator.pushReplacementNamed(context, '/');
+              // Go back to home - remove all routes and push home
+              if (ModalRoute.of(context)?.settings.name != '/home') {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/home',
+                  (route) => false, // Remove all previous routes
+                );
               }
               break;
             case 1:
