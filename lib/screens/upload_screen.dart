@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../widgets/base_layout.dart';
+import 'analyzeimage_screen.dart'; // Import the new screen
 
 class UploadScreen extends StatefulWidget {
   final String? selectedMedicine;
@@ -490,62 +491,18 @@ class _UploadScreenState extends State<UploadScreen> {
   void _handleUploadAndDetect() {
     if (!_canProceed()) return;
 
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4285F4)),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Processing Images...',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Analyzing ${widget.selectedMedicine ?? 'medicine'} authenticity',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                ),
-              ],
+    // Navigate directly to the analysis screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => AnalyzeImageScreen(
+              frontImage: frontImageFile,
+              backImage: backImageFile,
+              selectedMedicine: widget.selectedMedicine,
             ),
-          ),
-        );
-      },
+      ),
     );
-
-    // Simulate processing delay
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
-
-        // TODO: Navigate to results screen
-        // For now, show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Images processed successfully! Redirecting to results...',
-            ),
-            backgroundColor: Color(0xFF4CAF50),
-            duration: Duration(seconds: 3),
-          ),
-        );
-
-        // You can now access the image files:
-        // frontImageFile and backImageFile contain the actual image files
-        // You can upload these to your server or process them as needed
-
-        debugPrint('Front image path: ${frontImageFile?.path}');
-        debugPrint('Back image path: ${backImageFile?.path}');
-      }
-    });
   }
 }
 
