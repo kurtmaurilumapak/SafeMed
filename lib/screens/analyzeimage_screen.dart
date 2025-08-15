@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:math';
 import '../widgets/base_layout.dart';
+import 'results_screen.dart';
 
 class AnalyzeImageScreen extends StatefulWidget {
   final File? frontImage;
@@ -359,23 +361,51 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
   }
 
   void _handleViewResults() {
-    // TODO: Navigate to results screen
-    // For now, show a success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Navigating to results...'),
-        backgroundColor: Color(0xFF4CAF50),
-        duration: Duration(seconds: 2),
+    // Simulate different results for demo purposes
+    final Random random = Random();
+    final results = ['authentic', 'counterfeit', 'inconclusive'];
+    final selectedResult = results[random.nextInt(results.length)];
+
+    // Generate random confidence score based on result
+    double confidenceScore;
+    List<String>? warningSigns;
+
+    switch (selectedResult) {
+      case 'authentic':
+        confidenceScore = 0.85 + random.nextDouble() * 0.15; // 85-100%
+        warningSigns = null;
+        break;
+      case 'counterfeit':
+        confidenceScore = 0.70 + random.nextDouble() * 0.25; // 70-95%
+        warningSigns = [
+          'Invalid serial number format',
+          'Appears brighter or paler than usual',
+          'Bigger cavity and more space',
+          'Packaging inconsistencies detected',
+        ];
+        break;
+      default: // inconclusive
+        confidenceScore = 0.40 + random.nextDouble() * 0.35; // 40-75%
+        warningSigns = [
+          'Image quality too low for accurate analysis',
+          'Partial packaging visible',
+        ];
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => ResultsScreen(
+              frontImage: widget.frontImage,
+              backImage: widget.backImage,
+              selectedMedicine: widget.selectedMedicine,
+              result: selectedResult,
+              confidenceScore: confidenceScore,
+              warningSigns: warningSigns,
+            ),
       ),
     );
-
-    // You can navigate to results screen here
-    // Navigator.pushNamed(context, '/results', arguments: {
-    //   'frontImage': widget.frontImage,
-    //   'backImage': widget.backImage,
-    //   'medicine': widget.selectedMedicine,
-    //   'result': 'authentic', // or whatever the analysis result is
-    // });
   }
 }
 

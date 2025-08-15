@@ -26,13 +26,40 @@ class BaseLayout extends StatefulWidget {
   State<BaseLayout> createState() => _BaseLayoutState();
 }
 
-class _BaseLayoutState extends State<BaseLayout> {
+class _BaseLayoutState extends State<BaseLayout> with TickerProviderStateMixin {
   int _selectedIndex = 0;
+  late AnimationController _animationController;
+  late Animation<double> _animation;
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.currentNavIndex;
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _animation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+    _animationController.forward();
+  }
+
+  @override
+  void didUpdateWidget(BaseLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentNavIndex != widget.currentNavIndex) {
+      setState(() {
+        _selectedIndex = widget.currentNavIndex;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   @override
@@ -53,41 +80,118 @@ class _BaseLayoutState extends State<BaseLayout> {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
-      automaticallyImplyLeading: widget.showBackButton,
+      automaticallyImplyLeading: false,
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFFFFFF), Color(0xFFF8F9FA)],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x0D000000),
+              blurRadius: 12,
+              spreadRadius: 0,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+      ),
       leading:
           widget.showBackButton
-              ? IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
-                onPressed: () => Navigator.pop(context),
+              ? Container(
+                margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4285F4).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Color(0xFF4285F4),
+                    size: 20,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
               )
               : null,
-      title: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: const Color(0xFF4285F4),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.medical_services_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
+      title: FadeTransition(
+        opacity: _animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(-0.3, 0),
+            end: Offset.zero,
+          ).animate(_animation),
+          child: Row(
+            children: [
+              Hero(
+                tag: 'app_logo',
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF4285F4), Color(0xFF34A853)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF4285F4).withOpacity(0.3),
+                        blurRadius: 8,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.medical_services_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.title ?? 'SafeMed',
+                    style: const TextStyle(
+                      color: Color(0xFF1A1A1A),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  Text(
+                    'Your Health Guardian',
+                    style: TextStyle(
+                      color: const Color(0xFF1A1A1A).withOpacity(0.6),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Text(
-            widget.title ?? 'SafeMed',
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+        ),
       ),
-      actions: widget.actions,
+      actions:
+          widget.actions != null
+              ? [
+                ...widget.actions!.map(
+                  (action) => Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: action,
+                  ),
+                ),
+              ]
+              : null,
     );
   }
 
@@ -95,30 +199,62 @@ class _BaseLayoutState extends State<BaseLayout> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            spreadRadius: 0,
+            offset: const Offset(0, -4),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 6,
             spreadRadius: 0,
             offset: const Offset(0, -2),
           ),
         ],
       ),
-      child: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        child: Container(
+          height: 80,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildNavItem(0, Icons.home_rounded, 'Home'),
+              _buildNavItem(1, Icons.camera_alt_rounded, 'Verify'),
+              _buildNavItem(2, Icons.info_outline_rounded, 'About'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = _selectedIndex == index;
+
+    return InkWell(
+      onTap: () {
+        if (_selectedIndex != index) {
           setState(() {
             _selectedIndex = index;
           });
           // Handle navigation based on index
           switch (index) {
             case 0:
-              // Go back to home - remove all routes and push home
               if (ModalRoute.of(context)?.settings.name != '/home') {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/home',
-                  (route) => false, // Remove all previous routes
+                  (route) => false,
                 );
               }
               break;
@@ -133,23 +269,66 @@ class _BaseLayoutState extends State<BaseLayout> {
               }
               break;
           }
-        },
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF4285F4),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        elevation: 0,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.camera_alt),
-            label: 'Verify',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.info_outline),
-            label: 'About',
-          ),
-        ],
+        }
+      },
+      splashColor: const Color(0xFF4285F4).withOpacity(0.1),
+      highlightColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 80,
+        height: 64,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color:
+                    isSelected
+                        ? const Color(0xFF4285F4).withOpacity(0.15)
+                        : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border:
+                    isSelected
+                        ? Border.all(
+                          color: const Color(0xFF4285F4).withOpacity(0.2),
+                          width: 1,
+                        )
+                        : null,
+              ),
+              child: AnimatedScale(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                scale: isSelected ? 1.1 : 1.0,
+                child: Icon(
+                  icon,
+                  color:
+                      isSelected
+                          ? const Color(0xFF4285F4)
+                          : const Color(0xFF9E9E9E),
+                  size: 24,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              style: TextStyle(
+                color:
+                    isSelected
+                        ? const Color(0xFF4285F4)
+                        : const Color(0xFF9E9E9E),
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                letterSpacing: isSelected ? 0.2 : 0.0,
+              ),
+              child: Text(label),
+            ),
+          ],
+        ),
       ),
     );
   }

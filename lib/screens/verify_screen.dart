@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:safemed/widgets/base_layout.dart';
 import 'upload_screen.dart';
 
 class VerifyScreen extends StatefulWidget {
@@ -9,7 +10,6 @@ class VerifyScreen extends StatefulWidget {
 }
 
 class _VerifyScreenState extends State<VerifyScreen> {
-  int _selectedIndex = 1; // Set to Verify tab
   String? _selectedMedicine;
 
   final List<Map<String, dynamic>> medicines = [
@@ -52,23 +52,11 @@ class _VerifyScreenState extends State<VerifyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Upload Drug Images',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: false,
-      ),
+    return BaseLayout(
+      currentNavIndex: 1, // Set to Verify tab
+      title: 'Upload Drug Images',
+      padding: const EdgeInsets.all(24),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -289,59 +277,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
             ),
 
             const SizedBox(height: 100), // Extra space for bottom navigation
-          ],
-        ),
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              spreadRadius: 0,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-            // Handle navigation based on index
-            switch (index) {
-              case 0:
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/home',
-                  (route) => false,
-                );
-                break;
-              case 1:
-                // Already on Verify screen
-                break;
-              case 2:
-                Navigator.pushNamed(context, '/about');
-                break;
-            }
-          },
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF4285F4),
-          unselectedItemColor: Colors.grey,
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.camera_alt),
-              label: 'Verify',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.info_outline),
-              label: 'About',
-            ),
           ],
         ),
       ),
