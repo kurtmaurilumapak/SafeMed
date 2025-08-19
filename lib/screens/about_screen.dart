@@ -289,13 +289,13 @@ class _AboutScreenState extends State<AboutScreen>
           crossAxisCount: 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          childAspectRatio: 0.85,
+          childAspectRatio: 0.7, // Changed from 0.85 to 0.7 for more height
         ),
         itemCount: features.length,
         itemBuilder: (context, index) {
           final feature = features[index];
           return Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16), // Reduced from 20 to 16
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -324,22 +324,28 @@ class _AboutScreenState extends State<AboutScreen>
                     size: 24,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12), // Reduced from 16 to 12
                 Text(
                   feature['title'] as String,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 15, // Reduced from 16 to 15
                     fontWeight: FontWeight.w700,
                     color: Colors.black,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  feature['description'] as String,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                    height: 1.4,
+                const SizedBox(height: 6), // Reduced from 8 to 6
+                Expanded(
+                  // Added Expanded to prevent overflow
+                  child: Text(
+                    feature['description'] as String,
+                    style: TextStyle(
+                      fontSize: 12, // Reduced from 13 to 12
+                      color: Colors.grey.shade600,
+                      height: 1.3, // Reduced line height from 1.4 to 1.3
+                    ),
+                    maxLines: 3, // Added max lines to prevent overflow
+                    overflow:
+                        TextOverflow.ellipsis, // Added ellipsis for long text
                   ),
                 ),
               ],
