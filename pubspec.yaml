@@ -59,6 +59,13 @@ flutter:
   uses-material-design: true
   assets:
     - "assets/medlogo.png"
+    - "assets/biogesic.png"
+    - "assets/decolgen.png"
+    - "assets/alaxan.png"
+    - "assets/neozep.png"
+    - "assets/diatabs.png"
+    - "assets/solmux.png"
+    - "assets/bioflu.png"
 
   # To add assets to your application, add an assets section, like this:
   # assets:
