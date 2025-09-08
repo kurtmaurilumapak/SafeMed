@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:pytorch_lite/pytorch_lite.dart';
+import 'dart:math' show max, min;
 
 enum ModelType { yoloV8 }
 
@@ -33,6 +34,8 @@ class PerImageScores {
 const double kMinBoxConf = 0.50; // ignore boxes below this conf entirely
 const double kConflictSumMin = 0.60; // class is "present" if SUM >= this
 const double kStrongBoxConf = 0.60; // ...or if any single box >= this
+const double kMultiItemConf = 0.5;  // Minimum confidence for counting boxes toward "items"
+const double kClusterIoU = 0.5; // Boxes with IoU >= this are considered the same pack
 
 class ConflictDetectionException implements Exception {
   final String message;
@@ -41,6 +44,14 @@ class ConflictDetectionException implements Exception {
   ]);
   @override
   String toString() => message;
+}
+
+class MultipleItemsDetectedException implements Exception {
+  final String location; // "FRONT" or "BACK"
+  MultipleItemsDetectedException(this.location);
+
+  @override
+  String toString() => 'Multiple medicine packs detected in the $location image.';
 }
 
 class AnalysisResult {
@@ -123,6 +134,62 @@ class ModelService {
       minimumScore: kMinBoxConf,
       iOUThreshold: 0.45,
     ) as List<ResultObjectDetection>;
+
+    final strongBoxes = dets
+        .where((d) => (d.score ?? 0.0) >= kMultiItemConf)
+        .toList();
+
+    double iou(ResultObjectDetection a, ResultObjectDetection b) {
+      final ax1 = a.rect.left,   ay1 = a.rect.top;
+      final ax2 = a.rect.right,  ay2 = a.rect.bottom;
+      final bx1 = b.rect.left,   by1 = b.rect.top;
+      final bx2 = b.rect.right,  by2 = b.rect.bottom;
+
+      final ix1 = max(ax1, bx1);
+      final iy1 = max(ay1, by1);
+      final ix2 = min(ax2, bx2);
+      final iy2 = min(ay2, by2);
+
+      final iw = max(0.0, ix2 - ix1);
+      final ih = max(0.0, iy2 - iy1);
+      final inter = iw * ih;
+
+      final areaA = max(0.0, (ax2 - ax1)) * max(0.0, (ay2 - ay1));
+      final areaB = max(0.0, (bx2 - bx1)) * max(0.0, (by2 - by1));
+      final denom = areaA + areaB - inter;
+      if (denom <= 0.0) return 0.0;
+      return inter / denom;
+    }
+
+    // Cluster strong boxes by IoU
+    if (strongBoxes.isNotEmpty) {
+      final visited = List<bool>.filled(strongBoxes.length, false);
+      int clusters = 0;
+
+      for (int i = 0; i < strongBoxes.length; i++) {
+        if (visited[i]) continue;
+        visited[i] = true;
+        clusters++;
+
+        // BFS cluster merge
+        final queue = <int>[i];
+        while (queue.isNotEmpty) {
+          final idx = queue.removeLast();
+          for (int j = 0; j < strongBoxes.length; j++) {
+            if (visited[j]) continue;
+            if (iou(strongBoxes[idx], strongBoxes[j]) >= kClusterIoU) {
+              visited[j] = true;
+              queue.add(j);
+            }
+          }
+        }
+      }
+
+      if (clusters > 1) {
+        print('[ModelService][$tag] multiple packs detected: clusters=$clusters');
+        throw MultipleItemsDetectedException(tag.toUpperCase());
+      }
+    }
 
     double authSum = 0.0;
     double fakeSum = 0.0;

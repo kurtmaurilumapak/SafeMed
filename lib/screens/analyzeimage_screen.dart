@@ -142,19 +142,35 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
       });
       _scanAnimationController.stop();
       _analysisResult = res; // cache for the button
-    } on ConflictDetectionException catch (_) {
+    } on MultipleItemsDetectedException catch (e) {
       if (!mounted) return;
+
       await showDialog(
         context: context,
-        builder: (ctx) => const AlertDialog(
-          title: Text('Conflicting detections'),
-          content: Text(
-              'Both AUTHENTIC and COUNTERFEIT were detected in one image.\n'
-                  'Please retake clear photos (front and back) and try again.'
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text(
+            'Multiple Medicines Detected',
+            style: TextStyle(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
           ),
+          content: Text(
+            'Multiple medicine packs detected in the ${e.location} image.\n\n'
+                'Please retake clear photos showing only a single pack and try again.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text(
+                'OK',
+                style: TextStyle(color: Color(0xFF4285F4), fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         ),
       );
-      if (mounted) Navigator.pop(context); // back to Upload screen
+
+      if (mounted) Navigator.pop(context); // Back to Upload screen
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
