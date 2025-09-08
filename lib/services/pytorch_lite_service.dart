@@ -30,9 +30,9 @@ class PerImageScores {
   });
 }
 
-const double kMinBoxConf           = 0.50; // ignore boxes below this conf entirely
-const double kConflictSumMin       = 0.60; // class is "present" if SUM >= this
-const double kStrongBoxConf        = 0.60; // ...or if any single box >= this
+const double kMinBoxConf = 0.50; // ignore boxes below this conf entirely
+const double kConflictSumMin = 0.60; // class is "present" if SUM >= this
+const double kStrongBoxConf = 0.60; // ...or if any single box >= this
 
 class ConflictDetectionException implements Exception {
   final String message;
@@ -45,7 +45,7 @@ class ConflictDetectionException implements Exception {
 
 class AnalysisResult {
   final double avgAuthenticScore;      // 0..1 (from capped sums)
-  final double avgCounterfeitScore;    // 0..1 (from capped sums)  <-- NEW
+  final double avgCounterfeitScore;    // 0..1 (from capped sums)
   final double frontAuthenticScore;
   final double backAuthenticScore;
   final String finalLabel;    // 'authentic' | 'counterfeit' | 'inconclusive'
@@ -66,15 +66,13 @@ class ModelService {
 
   static const double decisionThreshold = 0.75; // 75%
 
-  // Register your medicines here.
-  // Make sure assets/labels/biogesic_labels.txt contains exactly:
+  // Register medicines here.
   //   authentic
   //   counterfeit
   final Map<String, MedicineModelConfig> _registry = {
     'Biogesic': const MedicineModelConfig(
       modelPath: 'assets/models/biogesic.torchscript',
       labelsPath: 'assets/labels/labels.txt',
-      // If you exported at 960x960, change inputW/H to 960.
       inputW: 960,
       inputH: 960,
     ),
@@ -102,6 +100,16 @@ class ModelService {
     _loaded[medicine] = model;
   }
 
+  Future<PerImageScores> scoreOne({
+    required String medicine,
+    required File image,
+    String tag = 'image',
+  }) async {
+    await _ensureLoaded(medicine);
+    final model = _loaded[medicine];
+    return await _scoreImageYolo(model: model, imageFile: image, tag: tag);
+  }
+
   // ---- Scoring for a single image (YOLOv8) ----
   // Sum confidences for each class; this is more robust than taking only the max box.
   Future<PerImageScores> _scoreImageYolo({
@@ -112,7 +120,7 @@ class ModelService {
     final bytes = await imageFile.readAsBytes();
     final dets = await model.getImagePrediction(
       bytes,
-      minimumScore: kMinBoxConf, // was 0.05 → now 0.10 to cut speckles
+      minimumScore: kMinBoxConf,
       iOUThreshold: 0.45,
     ) as List<ResultObjectDetection>;
 
@@ -139,7 +147,7 @@ class ModelService {
         'authStrong=$authHasStrong fakeStrong=$fakeHasStrong '
         '(minBox=$kMinBoxConf sumMin=$kConflictSumMin strong=$kStrongBoxConf)');
 
-    // NEW: tolerant conflict test
+    // tolerant conflict test
     final bool authPresent = (authSum >= kConflictSumMin) || authHasStrong;
     final bool fakePresent = (fakeSum >= kConflictSumMin) || fakeHasStrong;
 
@@ -169,7 +177,7 @@ class ModelService {
     );
   }
 
-  // ---- Public: analyze both images and average the scores ----
+  // analyze both images and average the scores ----
   Future<AnalysisResult> analyzeBoth({
     required String medicine,
     required File front,
@@ -186,7 +194,7 @@ class ModelService {
     final avgAuth = ((f.authScore + b.authScore) / 2.0).clamp(0.0, 1.0);
     final avgFake = ((f.fakeScore + b.fakeScore) / 2.0).clamp(0.0, 1.0);
 
-    // Your exact rule:
+    // exact rule:
     //   avgAuthentic ≥ 0.75 → Authentic
     //   avgCounterfeit ≥ 0.75 → Counterfeit
     //   else → Inconclusive
@@ -203,9 +211,9 @@ class ModelService {
         'fake=${(avgFake*100).toStringAsFixed(1)}% → $label');
 
     return AnalysisResult(
-      avgAuthenticScore: avgAuth,        // keep for UI; avg counterfeit = avgFake
+      avgAuthenticScore: avgAuth,
       avgCounterfeitScore: avgFake,
-      frontAuthenticScore: f.authScore,  // per-image authentic evidence
+      frontAuthenticScore: f.authScore,
       backAuthenticScore:  b.authScore,
       finalLabel: label,
     );

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'dart:math';
 import '../widgets/base_layout.dart';
 import 'results_screen.dart';
 import '../services/pytorch_lite_service.dart';
+import 'dart:async'; // for Timer
 
 class AnalyzeImageScreen extends StatefulWidget {
   final File? frontImage;
@@ -24,13 +24,14 @@ class AnalyzeImageScreen extends StatefulWidget {
 class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
     with TickerProviderStateMixin {
   late AnimationController _scanAnimationController;
-  late AnimationController _progressAnimationController;
   late Animation<double> _scanAnimation;
-  late Animation<double> _progressAnimation;
 
   double _progress = 0.0;
   bool _analysisComplete = false;
   String _currentStep = "Analyzing images...";
+  Timer? _progressTicker;   // drives the progress bar while work runs
+  bool _running = false;    // prevents double-starts
+  AnalysisResult? _analysisResult;
 
   @override
   void initState() {
@@ -44,64 +45,132 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
     _scanAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _scanAnimationController, curve: Curves.linear),
     );
-
-    // Initialize progress animation
-    _progressAnimationController = AnimationController(
-      duration: const Duration(seconds: 5),
-      vsync: this,
-    );
-    _progressAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _progressAnimationController,
-        curve: Curves.easeOut,
-      ),
-    );
-
-    // Start animations and simulation
-    _startAnalysis();
-  }
-
-  void _startAnalysis() {
-    // Start the scanning animation
     _scanAnimationController.repeat();
 
-    // Start progress animation
-    _progressAnimationController.forward();
+    // Start real analysis immediately
+    _runAnalysis();
+  }
 
-    // Listen to progress changes
-    _progressAnimationController.addListener(() {
+  void _startProgressTicker(double ceiling) {
+    _progressTicker?.cancel();
+    _progressTicker = Timer.periodic(const Duration(milliseconds: 120), (t) {
+      if (!_running || !mounted) { t.cancel(); return; }
       setState(() {
-        _progress = _progressAnimation.value;
-
-        // Update step text based on progress
-        if (_progress < 0.3) {
-          _currentStep = "Analyzing images...";
-        } else if (_progress < 0.6) {
-          _currentStep = "Scanning for authenticity markers...";
-        } else if (_progress < 0.9) {
-          _currentStep = "Verifying medicine details...";
-        } else {
-          _currentStep = "Finalizing analysis...";
-        }
+        final next = _progress + 0.02;
+        _progress = next > ceiling ? ceiling : next;
       });
     });
+  }
 
-    // Complete analysis after animation
-    _progressAnimationController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        setState(() {
-          _analysisComplete = true;
-          _currentStep = "Analysis complete!";
-        });
-        _scanAnimationController.stop();
+  void _snapTo(double v) {
+    if (!mounted) return;
+    setState(() { _progress = v.clamp(0.0, 1.0); });
+  }
+
+  Future<void> _runAnalysis() async {
+    if (_running) return;
+    if (widget.selectedMedicine == null || widget.frontImage == null || widget.backImage == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Missing medicine or images')),
+      );
+      Navigator.pop(context); // back to Upload screen
+      return;
+    }
+    _running = true;
+
+    try {
+      // STEP 1: Load/preload model
+      setState(() { _currentStep = 'Loading model…'; });
+      _startProgressTicker(0.15);
+      // If you didn't preload on VerifyScreen, this ensures the model is ready:
+      await ModelService().preload(widget.selectedMedicine!);
+
+      // STEP 2: Detect on FRONT
+      setState(() { _currentStep = 'Detecting on FRONT image…'; });
+      _startProgressTicker(0.55);
+      final front = await ModelService().scoreOne(
+        medicine: widget.selectedMedicine!,
+        image: widget.frontImage!,
+        tag: 'front',
+      );
+
+      // STEP 3: Detect on BACK
+      setState(() { _currentStep = 'Detecting on BACK image…'; });
+      _startProgressTicker(0.85);
+      final back = await ModelService().scoreOne(
+        medicine: widget.selectedMedicine!,
+        image: widget.backImage!,
+        tag: 'back',
+      );
+
+      // STEP 4: Compute averages & decision
+      setState(() { _currentStep = 'Computing averages & decision…'; });
+      _startProgressTicker(0.95);
+
+      // Averages using the raw-sum capped evidence (as in your service)
+      final avgAuth = ((front.authScore + back.authScore) / 2.0).clamp(0.0, 1.0);
+      final avgFake = ((front.fakeScore + back.fakeScore) / 2.0).clamp(0.0, 1.0);
+
+      String label;
+      if (avgAuth >= ModelService.decisionThreshold) {
+        label = 'authentic';
+      } else if (avgFake >= ModelService.decisionThreshold) {
+        label = 'counterfeit';
+      } else {
+        label = 'inconclusive';
       }
-    });
+
+      // Build the same AnalysisResult you normally pass around
+      final res = AnalysisResult(
+        avgAuthenticScore: avgAuth,
+        avgCounterfeitScore: avgFake,
+        frontAuthenticScore: front.authScore,
+        backAuthenticScore:  back.authScore,
+        finalLabel: label,
+      );
+
+      // Finish up UI
+      setState(() { _currentStep = 'Finalizing…'; });
+      _startProgressTicker(0.98);
+      await Future.delayed(const Duration(milliseconds: 250));
+      _snapTo(1.0);
+
+      setState(() {
+        _analysisComplete = true;
+        _currentStep = 'Done!';
+      });
+      _scanAnimationController.stop();
+      _analysisResult = res; // cache for the button
+    } on ConflictDetectionException catch (_) {
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        builder: (ctx) => const AlertDialog(
+          title: Text('Conflicting detections'),
+          content: Text(
+              'Both AUTHENTIC and COUNTERFEIT were detected in one image.\n'
+                  'Please retake clear photos (front and back) and try again.'
+          ),
+        ),
+      );
+      if (mounted) Navigator.pop(context); // back to Upload screen
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Analysis failed: $e')),
+      );
+      Navigator.pop(context); // back to Upload screen
+    } finally {
+      _progressTicker?.cancel();
+      _running = false;
+    }
   }
 
   @override
   void dispose() {
+    _progressTicker?.cancel();
     _scanAnimationController.dispose();
-    _progressAnimationController.dispose();
     super.dispose();
   }
 
@@ -205,7 +274,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
 
                     // Analysis Status
                     Text(
-                      'Analyzing images...',
+                      _analysisComplete ? 'Analyzing Complete!' : 'Analyzing Image',
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
@@ -215,15 +284,16 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
 
                     const SizedBox(height: 8),
 
-                    Text(
-                      'Please wait while we scan your drug\nimages for authenticity. This might\ntake a few seconds.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                        height: 1.4,
+                    if (!_analysisComplete)
+                      Text(
+                        'Please wait while we scan your drug\nimages for authenticity. This might\ntake a few seconds.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                          height: 1.4,
+                        ),
                       ),
-                    ),
 
                     const SizedBox(height: 32),
 
@@ -328,14 +398,13 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
               const SizedBox(height: 24),
 
               // View Results Button (shown when analysis is complete)
-              if (_analysisComplete)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _handleViewResults,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _analysisComplete ? _handleViewResults : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4285F4),
                         foregroundColor: Colors.white,
@@ -361,74 +430,33 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
     );
   }
 
-  void _handleViewResults() async {
-    if (widget.selectedMedicine == null || widget.frontImage == null || widget.backImage == null) {
+  void _handleViewResults() {
+    if (_analysisResult == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Missing medicine or images')),
+        const SnackBar(content: Text('Please wait for analysis to complete')),
       );
       return;
     }
 
-    setState(() => _currentStep = 'Running model on images…');
+    final res = _analysisResult!;
+    final double displayScore = (res.finalLabel == 'counterfeit')
+        ? res.avgCounterfeitScore
+        : res.avgAuthenticScore;
 
-    try {
-      final res = await ModelService().analyzeBoth(
-        medicine: widget.selectedMedicine!,
-        front: widget.frontImage!,
-        back: widget.backImage!,
-      );
-
-      // Decide what to DISPLAY:
-      // - If verdict is authentic → show avgAuthenticScore
-      // - If verdict is counterfeit → show avgCounterfeit score
-      //   (since we used capped sums, compute it as:
-      //     avgCounterfeit ≈ 1 - avgAuthenticScore
-      //   for UI purposes; if you added avgFake in AnalysisResult, use that directly)
-      final double displayScore = (res.finalLabel == 'counterfeit')
-          ? res.avgCounterfeitScore   // <-- use the real counterfeit average
-          : res.avgAuthenticScore;    // authentic or inconclusive
-
-      if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ResultsScreen(
-            selectedMedicine: widget.selectedMedicine,
-            frontImage: widget.frontImage,
-            backImage: widget.backImage,
-            result: res.finalLabel,
-            confidenceScore: displayScore,
-            // If your ResultsScreen takes front/back per-image values, you can pass them too:
-            // frontScore: res.frontAuthenticScore,
-            // backScore:  res.backAuthenticScore,
-          ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ResultsScreen(
+          selectedMedicine: widget.selectedMedicine,
+          frontImage: widget.frontImage,
+          backImage: widget.backImage,
+          result: res.finalLabel,
+          confidenceScore: displayScore,
+          // frontScore: res.frontAuthenticScore,
+          // backScore:  res.backAuthenticScore,
         ),
-      );
-    } on ConflictDetectionException catch (_) {
-      if (!mounted) return;
-      await showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Conflicting detections'),
-          content: const Text(
-              'Both AUTHENTIC and COUNTERFEIT were detected in one image.\n'
-                  'Please retake clear photos (front and back) and try again.'
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-      if (mounted) Navigator.pop(context); // go back to Upload screen
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Analysis failed: $e')),
-      );
-    }
+      ),
+    );
   }
 }
 
