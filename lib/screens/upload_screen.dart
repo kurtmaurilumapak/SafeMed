@@ -99,7 +99,7 @@ class _UploadScreenState extends State<UploadScreen> {
               'front',
               frontImageFile,
               'Tap to upload front image',
-              () => _handleImageUpload('front'),
+                  () => _handleImageUpload('front'),
             ),
 
             const SizedBox(height: 32),
@@ -120,7 +120,7 @@ class _UploadScreenState extends State<UploadScreen> {
               'back',
               backImageFile,
               'Tap to upload back image',
-              () => _handleImageUpload('back'),
+                  () => _handleImageUpload('back'),
             ),
 
             const SizedBox(height: 40),
@@ -147,7 +147,7 @@ class _UploadScreenState extends State<UploadScreen> {
                       Icons.cloud_upload_rounded,
                       size: 20,
                       color:
-                          _canProceed() ? Colors.white : Colors.grey.shade500,
+                      _canProceed() ? Colors.white : Colors.grey.shade500,
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -156,7 +156,7 @@ class _UploadScreenState extends State<UploadScreen> {
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color:
-                            _canProceed() ? Colors.white : Colors.grey.shade500,
+                        _canProceed() ? Colors.white : Colors.grey.shade500,
                       ),
                     ),
                   ],
@@ -182,11 +182,11 @@ class _UploadScreenState extends State<UploadScreen> {
   }
 
   Widget _buildUploadArea(
-    String side,
-    File? imageFile,
-    String placeholder,
-    VoidCallback onTap,
-  ) {
+      String side,
+      File? imageFile,
+      String placeholder,
+      VoidCallback onTap,
+      ) {
     final bool hasImage = imageFile != null;
 
     return GestureDetector(
@@ -212,108 +212,108 @@ class _UploadScreenState extends State<UploadScreen> {
           ],
         ),
         child:
-            hasImage
-                ? Stack(
+        hasImage
+            ? Stack(
+          children: [
+            // Display uploaded image
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(11),
+                child: Image.file(imageFile, fit: BoxFit.cover),
+              ),
+            ),
+            // Remove button
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () => _removeImage(side),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+            // Success indicator overlay
+            Positioned(
+              bottom: 8,
+              left: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4285F4).withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Display uploaded image
-                    Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(11),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(11),
-                        child: Image.file(imageFile, fit: BoxFit.cover),
-                      ),
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 16,
                     ),
-                    // Remove button
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: GestureDetector(
-                        onTap: () => _removeImage(side),
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Success indicator overlay
-                    Positioned(
-                      bottom: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4285F4).withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.check_circle,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${side.capitalize()} uploaded',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-                : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: const Color(0xFF4285F4),
-                          width: 2,
-                          style: BorderStyle.solid,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Color(0xFF4285F4),
-                        size: 40,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(width: 4),
                     Text(
-                      placeholder,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
+                      '${side.capitalize()} uploaded',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
                       ),
                     ),
                   ],
                 ),
+              ),
+            ),
+          ],
+        )
+            : Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: const Color(0xFF4285F4),
+                  width: 2,
+                  style: BorderStyle.solid,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.add,
+                color: Color(0xFF4285F4),
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              placeholder,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -497,10 +497,10 @@ class _UploadScreenState extends State<UploadScreen> {
       MaterialPageRoute(
         builder:
             (context) => AnalyzeImageScreen(
-              frontImage: frontImageFile,
-              backImage: backImageFile,
-              selectedMedicine: widget.selectedMedicine,
-            ),
+          frontImage: frontImageFile,
+          backImage: backImageFile,
+          selectedMedicine: widget.selectedMedicine,
+        ),
       ),
     );
   }

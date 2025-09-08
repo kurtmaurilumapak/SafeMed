@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:safemed/widgets/base_layout.dart';
 import 'upload_screen.dart';
+import '../services/pytorch_lite_service.dart';
 
 class VerifyScreen extends StatefulWidget {
   const VerifyScreen({super.key});
@@ -98,9 +99,9 @@ class _VerifyScreenState extends State<VerifyScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color:
-                            isSelected
-                                ? const Color(0xFF4285F4)
-                                : Colors.transparent,
+                        isSelected
+                            ? const Color(0xFF4285F4)
+                            : Colors.transparent,
                         width: 2,
                       ),
                       boxShadow: [
@@ -149,9 +150,9 @@ class _VerifyScreenState extends State<VerifyScreen> {
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color:
-                                  isSelected
-                                      ? const Color(0xFF4285F4)
-                                      : Colors.black,
+                              isSelected
+                                  ? const Color(0xFF4285F4)
+                                  : Colors.black,
                             ),
                           ),
                         ),
@@ -217,13 +218,31 @@ class _VerifyScreenState extends State<VerifyScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed:
-                    _selectedMedicine != null
-                        ? () {
-                          // Handle proceed with selected medicine
-                          _proceedWithVerification();
-                        }
-                        : null,
+                onPressed: () async {
+                  if (_selectedMedicine == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please select a medicine')),
+                    );
+                    return;
+                  }
+
+                  try {
+                    await ModelService().preload(_selectedMedicine!); // load & cache once
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to load model: $e')),
+                    );
+                    return;
+                  }
+
+                  if (!mounted) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => UploadScreen(selectedMedicine: _selectedMedicine!),
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(
                     0xFF4285F4,

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import '../widgets/base_layout.dart';
 import 'results_screen.dart';
+import '../services/pytorch_lite_service.dart';
 
 class AnalyzeImageScreen extends StatefulWidget {
   final File? frontImage;
@@ -115,7 +116,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
         child: ConstrainedBox(
           constraints: BoxConstraints(
             minHeight:
-                MediaQuery.of(context).size.height -
+            MediaQuery.of(context).size.height -
                 200, // Account for AppBar and BottomNav
           ),
           child: Column(
@@ -239,7 +240,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
                             width:
-                                (MediaQuery.of(context).size.width - 48) *
+                            (MediaQuery.of(context).size.width - 48) *
                                 _progress,
                             height: 6,
                             decoration: BoxDecoration(
@@ -360,52 +361,74 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
     );
   }
 
-  void _handleViewResults() {
-    // Simulate different results for demo purposes
-    final Random random = Random();
-    final results = ['authentic', 'counterfeit', 'inconclusive'];
-    final selectedResult = results[random.nextInt(results.length)];
-
-    // Generate random confidence score based on result
-    double confidenceScore;
-    List<String>? warningSigns;
-
-    switch (selectedResult) {
-      case 'authentic':
-        confidenceScore = 0.85 + random.nextDouble() * 0.15; // 85-100%
-        warningSigns = null;
-        break;
-      case 'counterfeit':
-        confidenceScore = 0.70 + random.nextDouble() * 0.25; // 70-95%
-        warningSigns = [
-          'Invalid serial number format',
-          'Appears brighter or paler than usual',
-          'Bigger cavity and more space',
-          'Packaging inconsistencies detected',
-        ];
-        break;
-      default: // inconclusive
-        confidenceScore = 0.40 + random.nextDouble() * 0.35; // 40-75%
-        warningSigns = [
-          'Image quality too low for accurate analysis',
-          'Partial packaging visible',
-        ];
+  void _handleViewResults() async {
+    if (widget.selectedMedicine == null || widget.frontImage == null || widget.backImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Missing medicine or images')),
+      );
+      return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder:
-            (context) => ResultsScreen(
-              frontImage: widget.frontImage,
-              backImage: widget.backImage,
-              selectedMedicine: widget.selectedMedicine,
-              result: selectedResult,
-              confidenceScore: confidenceScore,
-              warningSigns: warningSigns,
+    setState(() => _currentStep = 'Running model on images…');
+
+    try {
+      final res = await ModelService().analyzeBoth(
+        medicine: widget.selectedMedicine!,
+        front: widget.frontImage!,
+        back: widget.backImage!,
+      );
+
+      // Decide what to DISPLAY:
+      // - If verdict is authentic → show avgAuthenticScore
+      // - If verdict is counterfeit → show avgCounterfeit score
+      //   (since we used capped sums, compute it as:
+      //     avgCounterfeit ≈ 1 - avgAuthenticScore
+      //   for UI purposes; if you added avgFake in AnalysisResult, use that directly)
+      final double displayScore = (res.finalLabel == 'counterfeit')
+          ? res.avgCounterfeitScore   // <-- use the real counterfeit average
+          : res.avgAuthenticScore;    // authentic or inconclusive
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ResultsScreen(
+            selectedMedicine: widget.selectedMedicine,
+            frontImage: widget.frontImage,
+            backImage: widget.backImage,
+            result: res.finalLabel,
+            confidenceScore: displayScore,
+            // If your ResultsScreen takes front/back per-image values, you can pass them too:
+            // frontScore: res.frontAuthenticScore,
+            // backScore:  res.backAuthenticScore,
+          ),
+        ),
+      );
+    } on ConflictDetectionException catch (_) {
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Conflicting detections'),
+          content: const Text(
+              'Both AUTHENTIC and COUNTERFEIT were detected in one image.\n'
+                  'Please retake clear photos (front and back) and try again.'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
             ),
-      ),
-    );
+          ],
+        ),
+      );
+      if (mounted) Navigator.pop(context); // go back to Upload screen
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Analysis failed: $e')),
+      );
+    }
   }
 }
 
@@ -413,11 +436,11 @@ class ScanningArcsPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint =
-        Paint()
-          ..color = const Color(0xFF4285F4)
-          ..strokeWidth = 3
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round;
+    Paint()
+      ..color = const Color(0xFF4285F4)
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
 
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;

@@ -223,7 +223,7 @@ class _BaseLayoutState extends State<BaseLayout> with TickerProviderStateMixin {
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
         ),
-        child: Container(
+        child: SizedBox(
           height: 80,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -274,7 +274,7 @@ class _BaseLayoutState extends State<BaseLayout> with TickerProviderStateMixin {
       splashColor: const Color(0xFF4285F4).withOpacity(0.1),
       highlightColor: Colors.transparent,
       borderRadius: BorderRadius.circular(16),
-      child: Container(
+      child: SizedBox(
         width: 80,
         height: 64,
         child: Column(
