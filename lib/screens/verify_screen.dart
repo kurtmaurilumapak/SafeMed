@@ -225,23 +225,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                     );
                     return;
                   }
-
-                  try {
-                    await ModelService().preload(_selectedMedicine!); // load & cache once
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to load model: $e')),
-                    );
-                    return;
-                  }
-
-                  if (!mounted) return;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => UploadScreen(selectedMedicine: _selectedMedicine!),
-                    ),
-                  );
+                  await _showPreUploadReminder(context);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(
@@ -333,13 +317,88 @@ class _VerifyScreenState extends State<VerifyScreen> {
     );
   }
 
-  void _proceedWithVerification() {
-    // Navigate directly to upload screen with selected medicine
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => UploadScreen(selectedMedicine: _selectedMedicine),
-      ),
+  Future<void> _showPreUploadReminder(BuildContext context) async {
+    bool isLoading = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setLocalState) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: Center(
+              child: Text(
+                'A Reminder Before You Proceed',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                SizedBox(height: 4),
+                Text('• Upload the exact medicine you selected to avoid errors.'),
+                SizedBox(height: 6),
+                Text('• Ensure photos are clear, well-lit, and in focus.'),
+                SizedBox(height: 6),
+                Text('• Do NOT include multiple medicines in one image.'),
+              ],
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                  if (_selectedMedicine == null) return;
+                  setLocalState(() => isLoading = true);
+                  try {
+                    await ModelService().preload(_selectedMedicine!); // load the model here
+                  } catch (e) {
+                    setLocalState(() => isLoading = false);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to load model: $e')),
+                    );
+                    return;
+                  }
+
+                  if (!mounted) return;
+                  Navigator.of(ctx).pop(); // close dialog
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => UploadScreen(
+                        selectedMedicine: _selectedMedicine!,
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4285F4),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: isLoading
+                    ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+                    : const Text('Proceed'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

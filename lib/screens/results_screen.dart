@@ -128,6 +128,7 @@ class _ResultsScreenState extends State<ResultsScreen>
     IconData statusIcon;
     String statusTitle;
     String statusDescription;
+    bool isInconclusive = false;
 
     switch (widget.result.toLowerCase()) {
       case 'authentic':
@@ -135,21 +136,25 @@ class _ResultsScreenState extends State<ResultsScreen>
         statusIcon = Icons.verified_user;
         statusTitle = 'Authentic Medicine';
         statusDescription =
-            'This medicine appears to be genuine based on our analysis';
+        'This medicine appears to be genuine based on our analysis';
         break;
       case 'counterfeit':
         statusColor = const Color(0xFFFF5252);
         statusIcon = Icons.warning;
         statusTitle = 'Counterfeit Alert';
         statusDescription =
-            'This medicine appears to be counterfeit based on our analysis';
+        'This medicine appears to be counterfeit based on our analysis';
         break;
       default:
         statusColor = const Color(0xFFFF9800);
         statusIcon = Icons.help_outline;
         statusTitle = 'Inconclusive Result';
+        // Short summary, centered horizontally but aligned left within its own width
         statusDescription =
-            'Unable to determine authenticity. Please consult a pharmacist';
+        'We couldn’t confidently determine the authenticity.\n'
+            'Tap below to view possible reasons.';
+        isInconclusive = true;
+        break;
     }
 
     return Container(
@@ -168,6 +173,7 @@ class _ResultsScreenState extends State<ResultsScreen>
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Status Icon
           Container(
@@ -195,16 +201,33 @@ class _ResultsScreenState extends State<ResultsScreen>
 
           const SizedBox(height: 8),
 
-          // Status Description
-          Text(
-            statusDescription,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black87,
-              height: 1.4,
+          // Status Description (left-aligned)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Align(
+              alignment: Alignment.center, // Centers the whole block
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 300,
+                ),
+                child: Text(
+                  statusDescription,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.left,
+                ),
+              ),
             ),
-            textAlign: TextAlign.center,
           ),
+
+          // Expandable list only for Inconclusive
+          if (isInconclusive) ...[
+            const SizedBox(height: 8),
+            const _InconclusiveReasons(),
+          ],
         ],
       ),
     );
@@ -645,6 +668,8 @@ class _ResultsScreenState extends State<ResultsScreen>
     }
   }
 
+
+
   void _handleSecondaryAction() {
     // Navigate back to verify screen
     Navigator.pushNamedAndRemoveUntil(
@@ -745,6 +770,94 @@ class _ResultsScreenState extends State<ResultsScreen>
           ],
         );
       },
+    );
+  }
+}
+
+class _InconclusiveReasons extends StatefulWidget {
+  const _InconclusiveReasons();
+
+  @override
+  State<_InconclusiveReasons> createState() => _InconclusiveReasonsState();
+}
+
+class _InconclusiveReasonsState extends State<_InconclusiveReasons> {
+  bool _expanded = false;
+
+  final List<String> _reasons = const [
+    'The uploaded photos are unclear or blurry.',
+    'There is glare, reflections, or poor lighting.',
+    'The packaging is partially obstructed or cropped.',
+    'The uploaded medicine may not match the selected type.',
+    'Multiple medicines may be visible in one image.',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Toggle row
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Icon(
+                _expanded ? Icons.expand_less : Icons.expand_more,
+                color: const Color(0xFF4285F4),
+              ),
+              const SizedBox(width: 4),
+              const Text(
+                'Possible reasons',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF4285F4),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Collapsible content
+        AnimatedCrossFade(
+          crossFadeState: _expanded
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          duration: const Duration(milliseconds: 200),
+          firstChild: Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 28.0, top: 6.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _reasons.map((r) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('• ', style: TextStyle(fontSize: 14)),
+                        Expanded(
+                          child: Text(
+                            r,
+                            textAlign: TextAlign.left,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          secondChild: const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 }
