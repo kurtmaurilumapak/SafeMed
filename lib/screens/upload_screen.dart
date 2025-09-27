@@ -19,6 +19,15 @@ class _UploadScreenState extends State<UploadScreen> {
   final ImagePicker _picker = ImagePicker();
 
   @override
+  void initState() {
+    super.initState();
+    // Show popup with example images when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showExampleDialog();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BaseLayout(
       title: 'Upload Drug Images',
@@ -29,59 +38,6 @@ class _UploadScreenState extends State<UploadScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Info Section
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF4285F4).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4285F4),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.info_outline,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Upload Both Sides',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Please upload clear images of the front and back of the drug packaging for accurate detection.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black87,
-                            height: 1.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
 
             // Front Side Section
             const Text(
@@ -181,6 +137,183 @@ class _UploadScreenState extends State<UploadScreen> {
     );
   }
 
+  void _showExampleDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4285F4),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.info_outline,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Upload Both Sides',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Description
+                const Text(
+                  'Please upload clear images of the front and back of the drug packaging for accurate detection.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                
+                // Example images
+                Row(
+                  children: [
+                    // Front example
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Container(
+                            height: 120,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.asset(
+                                'assets/front.png',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey.shade200,
+                                    child: const Icon(
+                                      Icons.image,
+                                      color: Colors.grey,
+                                      size: 40,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Front Side Example',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Back example
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Container(
+                            height: 120,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.asset(
+                                'assets/back.png',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey.shade200,
+                                    child: const Icon(
+                                      Icons.image,
+                                      color: Colors.grey,
+                                      size: 40,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Back Side Example',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // Close button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4285F4),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Got it!',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildUploadArea(
       String side,
       File? imageFile,
@@ -225,7 +358,7 @@ class _UploadScreenState extends State<UploadScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(11),
                 child: Image.file(imageFile, fit: BoxFit.cover),
-              ),
+                ),
             ),
             // Remove button
             Positioned(

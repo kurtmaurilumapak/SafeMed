@@ -60,16 +60,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - "assets/labels/labels.txt"
-    - "assets/models/biogesic.torchscript"
-    - "assets/medlogo.png"
-    - "assets/biogesic.png"
-    - "assets/decolgen.png"
-    - "assets/alaxan.png"
-    - "assets/neozep.png"
-    - "assets/diatabs.png"
-    - "assets/solmux.png"
-    - "assets/bioflu.png"
+    - assets/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -87,6 +87,12 @@ class ModelService {
       inputW: 960,
       inputH: 960,
     ),
+    'Neozep': const MedicineModelConfig(
+      modelPath: 'assets/models/neozep.torchscript',
+      labelsPath: 'assets/labels/labels.txt',
+      inputW: 960,
+      inputH: 960,
+    ),
   };
 
   final Map<String, dynamic> _loaded = {}; // cached YOLO models per medicine
