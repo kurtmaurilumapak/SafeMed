@@ -93,6 +93,12 @@ class ModelService {
       inputW: 960,
       inputH: 960,
     ),
+    'Bioflu': const MedicineModelConfig(
+      modelPath: 'assets/models/bioflu.torchscript',
+      labelsPath: 'assets/labels/labels.txt',
+      inputW: 960,
+      inputH: 960,
+    ),
   };
 
   final Map<String, dynamic> _loaded = {}; // cached YOLO models per medicine
