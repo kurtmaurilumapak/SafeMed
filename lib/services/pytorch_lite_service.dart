@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:pytorch_lite/pytorch_lite.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'dart:math' show max, min;
 
 enum ModelType { yoloV8 }
@@ -176,9 +175,6 @@ class ModelService {
     if (_loaded.containsKey(medicine)) return;
 
     try {
-      print('[ModelService] Loading "$medicine" model from: ${cfg.modelPath}');
-      print('[ModelService] Using labels from: ${cfg.labelsPath}');
-
       final model = await PytorchLite.loadObjectDetectionModel(
         cfg.modelPath,
         2, // authentic + counterfeit
@@ -188,9 +184,7 @@ class ModelService {
         objectDetectionModelType: ObjectDetectionModelType.yolov8,
       );
       _loaded[medicine] = model;
-      print('[ModelService] "$medicine" model loaded successfully');
     } catch (e) {
-      print('[ModelService] Error loading "$medicine" model: $e');
       rethrow;
     }
   }
@@ -199,16 +193,6 @@ class ModelService {
     if (_identifierModel != null) return;
 
     try {
-      print('[ModelService] Loading identifier model from: ${_identifierConfig.modelPath}');
-      print('[ModelService] Using labels from: ${_identifierConfig.labelsPath}');
-      try {
-        final labelsText = await rootBundle.loadString(_identifierConfig.labelsPath!);
-        final lines = labelsText.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-        print('[ModelService] Identifier label order: ' + lines.join(', '));
-      } catch (e) {
-        print('[ModelService] Could not read identifier labels asset: $e');
-      }
-      
       final model = await PytorchLite.loadObjectDetectionModel(
         _identifierConfig.modelPath,
         5, // 5 medicine types: Biogesic, Neozep, Bioflu, Alaxan, Medicol
@@ -218,9 +202,7 @@ class ModelService {
         objectDetectionModelType: ObjectDetectionModelType.yolov8,
       );
       _identifierModel = model;
-      print('[ModelService] Identifier model loaded successfully');
     } catch (e) {
-      print('[ModelService] Error loading identifier model: $e');
       rethrow;
     }
   }
@@ -259,8 +241,6 @@ class ModelService {
 
     final detectedClass = bestDetection.className?.toLowerCase().trim() ?? '';
     final confidence = bestDetection.score ?? 0.0;
-
-    print('[ModelService][identifier] detected: $detectedClass (${(confidence * 100).toStringAsFixed(1)}%)');
 
     // Map detected class to medicine name
     String medicineName;
@@ -322,7 +302,6 @@ class ModelService {
       default:         name = 'unknown';  break;
     }
 
-    print('[ModelService][identifier] best=$name conf=${(conf*100).toStringAsFixed(1)}%');
     return IdentResult(name, conf);
   }
 
@@ -372,11 +351,6 @@ class ModelService {
       }
     }
 
-    // Debug print sorted by confidence
-    final sorted = scores.entries.toList()
-      ..sort((a,b) => b.value.compareTo(a.value));
-    print('[ModelService][identifier] scores: ' +
-        sorted.map((e) => '${e.key}=${(e.value*100).toStringAsFixed(1)}%').join(', '));
     return scores;
   }
 
@@ -392,7 +366,6 @@ class ModelService {
     ) as List<ResultObjectDetection>;
 
     if (dets.isEmpty) {
-      print('[ModelService][identifier] no detections');
       return const IdentDecision(bestName: 'unknown', bestConfidence: 0.0, matchesSelected: false);
     }
 
@@ -406,8 +379,6 @@ class ModelService {
 
     final bestNorm = bestName.toLowerCase();
     final selectedNorm = selected.toLowerCase();
-
-    print('[ModelService][identifier] top1=$bestName conf=${(conf*100).toStringAsFixed(1)}% (selected=$selected, thr=${(identifierConfidenceThreshold*100).toStringAsFixed(0)}%)');
 
     final matches = (bestNorm == selectedNorm) && (conf >= identifierConfidenceThreshold);
     return IdentDecision(bestName: bestName, bestConfidence: conf, matchesSelected: matches);
@@ -500,18 +471,11 @@ class ModelService {
       }
     }
 
-    // Debug logs
-    print('[ModelService][$tag] auth_sum=${authSum.toStringAsFixed(3)} '
-        'fake_sum=${fakeSum.toStringAsFixed(3)} '
-        'authStrong=$authHasStrong fakeStrong=$fakeHasStrong '
-        '(minBox=$kMinBoxConf sumMin=$kConflictSumMin strong=$kStrongBoxConf)');
-
     // tolerant conflict test
     final bool authPresent = (authSum >= kConflictSumMin) || authHasStrong;
     final bool fakePresent = (fakeSum >= kConflictSumMin) || fakeHasStrong;
 
     if (authPresent && fakePresent) {
-      print('[ModelService][$tag] conflict -> both classes present by thresholds');
       throw ConflictDetectionException();
     }
 
@@ -524,9 +488,6 @@ class ModelService {
     (authScore >= ModelService.decisionThreshold) ? 'authentic'
         : (fakeScore >= ModelService.decisionThreshold) ? 'counterfeit'
         : 'inconclusive';
-
-    print('[ModelService][$tag] auth=${(authScore*100).toStringAsFixed(1)}% '
-        'fake=${(fakeScore*100).toStringAsFixed(1)}% → $perImageVerdict');
 
     return PerImageScores(
       authSum: authSum,
@@ -565,9 +526,6 @@ class ModelService {
     } else {
       label = 'inconclusive';
     }
-
-    print('[ModelService][avg] auth=${(avgAuth*100).toStringAsFixed(1)}% '
-        'fake=${(avgFake*100).toStringAsFixed(1)}% → $label');
 
     return AnalysisResult(
       avgAuthenticScore: avgAuth,
