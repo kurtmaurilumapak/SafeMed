@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import '../services/pytorch_lite_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -42,6 +43,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     // Start animations
     _fadeController.forward();
     _slideController.forward();
+    
+    // Automatically start verification after a short delay
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      _startVerification();
+    });
   }
 
   @override
@@ -55,13 +61,22 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     setState(() {
       _isVerifying = true;
     });
-    // TODO: Navigate to next screen after verification
-    // Simulate verification delay
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+    // Warm up heavy services/models to avoid first-use lag
+    _warmUpApp().whenComplete(() {
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/home');
     });
+  }
+
+  Future<void> _warmUpApp() async {
+    try {
+      // Preload identifier and all medicine models
+      await ModelService().preloadAll();
+    } catch (_) {
+      // Ignore warm-up errors; app will still work but may load lazily.
+    }
+    // Small grace delay to keep the onboarding animation readable
+    await Future.delayed(const Duration(milliseconds: 600));
   }
 
   @override
@@ -158,74 +173,33 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
                 const Spacer(flex: 3),
 
-                // Main Action Button
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: _isVerifying ? 60 : size.width * 0.8,
-                  height: 56,
-                  child:
-                      _isVerifying
-                          ? Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: const Center(
-                              child: SpinKitFadingCircle(
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            ),
-                          )
-                          : ElevatedButton(
-                            onPressed: _startVerification,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF4285F4),
-                              elevation: 8,
-                              shadowColor: Colors.black.withOpacity(0.3),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.verified_user_rounded,
-                                  size: 24,
-                                  color: const Color(0xFF4285F4),
-                                ),
-                                const SizedBox(width: 12),
-                                const Text(
-                                  'Start Verification',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // Status Section
+                // Loading Section
                 AnimatedOpacity(
-                  opacity: _isVerifying ? 1.0 : 0.7,
+                  opacity: _isVerifying ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 300),
                   child: Column(
                     children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Center(
+                          child: SpinKitFadingCircle(
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                       Text(
-                        _isVerifying
-                            ? 'Verifying Medicine Database...'
-                            : 'Ready to verify your medicines',
+                        'Verifying Medicine Database...',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.9),
@@ -235,9 +209,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _isVerifying
-                            ? 'Please wait while we ensure everything is secure'
-                            : 'Tap the button above to begin',
+                        'Please wait while we ensure everything is secure',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.7),
@@ -254,14 +226,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 // Footer Section
                 Column(
                   children: [
-                    if (_isVerifying) ...[
-                      const SpinKitThreeBounce(
-                        color: Colors.white70,
-                        size: 18.0,
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
                     // Security Badge
                     Container(
                       padding: const EdgeInsets.symmetric(

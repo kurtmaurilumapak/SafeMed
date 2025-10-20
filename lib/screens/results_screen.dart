@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:image/image.dart' as img;
+import 'package:image/src/font/arial_14.dart';
+import 'package:image/src/font/arial_24.dart';
 import '../widgets/base_layout.dart';
 
 class ResultsScreen extends StatefulWidget {
@@ -75,7 +82,7 @@ class _ResultsScreenState extends State<ResultsScreen>
     return BaseLayout(
       title: 'Verification Result',
       currentNavIndex: 1,
-      showBackButton: true,
+      showHomeButton: true,
       padding: const EdgeInsets.all(24),
       body: FadeTransition(
         opacity: _fadeAnimation,
@@ -694,14 +701,9 @@ class _ResultsScreenState extends State<ResultsScreen>
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Result saved successfully'),
-                    backgroundColor: Color(0xFF4CAF50),
-                  ),
-                );
+                await _saveResult();
               },
               child: const Text('Save'),
             ),
@@ -709,6 +711,195 @@ class _ResultsScreenState extends State<ResultsScreen>
         );
       },
     );
+  }
+
+  Future<void> _saveResult() async {
+    try {
+      // Create the report image
+      final reportImage = await _createReportImage();
+      if (reportImage == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to create report image'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Save to Pictures/SafeMed folder
+      final saved = await _saveImageToDocuments(reportImage);
+      if (saved) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Report saved successfully! Check Pictures/SafeMed folder in Gallery.'),
+              backgroundColor: Color(0xFF4CAF50),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to save report'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save result: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<Uint8List?> _createReportImage() async {
+    try {
+      // Load front and back images
+      final frontBytes = widget.frontImage?.readAsBytes();
+      final backBytes = widget.backImage?.readAsBytes();
+      
+      if (frontBytes == null || backBytes == null) {
+        return null;
+      }
+
+      final frontImage = img.decodeImage(await frontBytes);
+      final backImage = img.decodeImage(await backBytes);
+      
+      if (frontImage == null || backImage == null) {
+        return null;
+      }
+
+      // Resize images to same height (360px) while maintaining aspect ratio
+      const targetHeight = 360;
+      final frontResized = img.copyResize(frontImage, height: targetHeight);
+      final backResized = img.copyResize(backImage, height: targetHeight);
+
+      // Layout constants
+      const padding = 24;
+      const gap = 24;
+      const headerHeight = 80;
+      const footerHeight = 32;
+
+      // Create report canvas (width: sum of images + gap + paddings)
+      final canvasWidth = padding + frontResized.width + gap + backResized.width + padding;
+      final canvasHeight = headerHeight + targetHeight + footerHeight + padding;
+      
+      // Create white background
+      final reportImage = img.Image(width: canvasWidth, height: canvasHeight);
+      img.fill(reportImage, color: img.ColorRgb8(255, 255, 255));
+
+      // Header: Result line and subline
+      final percent = (widget.confidenceScore * 100).toInt();
+      final resultLine = '${_getResultText()}  $percent%';
+      _drawText(reportImage, resultLine, x: padding, y: padding, size: 24, color: _getResultColor());
+      _drawText(reportImage, 'Medicine: ${widget.selectedMedicine ?? 'Unknown'}', x: padding, y: padding + 32, size: 16, color: 0xFF4285F4);
+      _drawText(reportImage, 'Date: ${DateTime.now().toString().split(' ')[0]}', x: padding, y: padding + 54, size: 14, color: 0xFF666666);
+
+      // Add images side by side
+      final imageY = headerHeight;
+      final frontX = padding;
+      final backX = padding + frontResized.width + gap;
+      
+      img.compositeImage(reportImage, frontResized, dstX: frontX, dstY: imageY);
+      img.compositeImage(reportImage, backResized, dstX: backX, dstY: imageY);
+
+      // Add labels
+      _drawText(reportImage, 'Front View', x: frontX, y: imageY + targetHeight + 8, size: 14, color: 0xFF666666);
+      _drawText(reportImage, 'Back View', x: backX, y: imageY + targetHeight + 8, size: 14, color: 0xFF666666);
+
+      // Add footer
+      _drawText(reportImage, 'Generated by SafeMed', x: padding, y: canvasHeight - footerHeight, size: 12, color: 0xFF999999);
+
+      return Uint8List.fromList(img.encodePng(reportImage));
+    } catch (e) {
+      print('Error creating report image: $e');
+      return null;
+    }
+  }
+
+  void _drawText(img.Image image, String text, {required int x, required int y, required int size, required int color}) {
+    final font = size >= 24 ? arial24 : arial14;
+    img.drawString(
+      image,
+      text,
+      x: x,
+      y: y,
+      font: font,
+      color: img.ColorRgb8(
+        (color >> 16) & 0xFF,
+        (color >> 8) & 0xFF,
+        color & 0xFF,
+      ),
+    );
+  }
+
+  String _getResultText() {
+    switch (widget.result.toLowerCase()) {
+      case 'authentic':
+        return 'AUTHENTIC MEDICINE';
+      case 'counterfeit':
+        return 'COUNTERFEIT ALERT';
+      default:
+        return 'INCONCLUSIVE RESULT';
+    }
+  }
+
+  int _getResultColor() {
+    switch (widget.result.toLowerCase()) {
+      case 'authentic':
+        return 0xFF4CAF50; // Green
+      case 'counterfeit':
+        return 0xFFFF5252; // Red
+      default:
+        return 0xFFFF9800; // Orange
+    }
+  }
+
+  Future<bool> _saveImageToDocuments(Uint8List imageBytes) async {
+    try {
+      // Get the external storage directory and navigate to public Pictures
+      final externalDir = await getExternalStorageDirectory();
+      if (externalDir == null) {
+        print('External storage not available');
+        return false;
+      }
+
+      // Construct the public Pictures path
+      // externalDir.path is like /storage/emulated/0/Android/data/com.example.safemed/files
+      // We need to go to /storage/emulated/0/Pictures/SafeMed
+      final storageRoot = externalDir.path.split('/Android/data/')[0];
+      final safeMedPath = '$storageRoot/Pictures/SafeMed';
+      final safeMedDir = Directory(safeMedPath);
+      
+      // Create directory if it doesn't exist
+      if (!await safeMedDir.exists()) {
+        await safeMedDir.create(recursive: true);
+      }
+
+      // Generate filename with timestamp
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'safemed_report_$timestamp.png';
+      final file = File('${safeMedDir.path}/$fileName');
+      
+      // Save the image
+      await file.writeAsBytes(imageBytes);
+      
+      print('Report saved to: ${file.path}');
+      return true;
+    } catch (e) {
+      print('Error saving image: $e');
+      return false;
+    }
   }
 
   void _showReportDialog() {

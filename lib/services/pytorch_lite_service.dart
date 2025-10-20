@@ -169,6 +169,21 @@ class ModelService {
     await _ensureIdentifierLoaded();
   }
 
+  // Preload identifier and all medicine models to avoid first-use lag
+  Future<void> preloadAll() async {
+    // Load identifier model
+    await _ensureIdentifierLoaded();
+    // Load all registered medicine models
+    for (final medicine in _registry.keys) {
+      try {
+        await _ensureLoaded(medicine);
+      } catch (_) {
+        // If a specific model fails to load, continue loading others
+        // This ensures the app still becomes responsive.
+      }
+    }
+  }
+
   Future<void> _ensureLoaded(String medicine) async {
     final cfg = _registry[medicine];
     if (cfg == null) throw Exception('No model registered for $medicine.');

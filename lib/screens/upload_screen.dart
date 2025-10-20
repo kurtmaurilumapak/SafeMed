@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../widgets/base_layout.dart';
 import 'analyzeimage_screen.dart'; // Import the new screen
+
+// Simple in-memory storage for now
+class _DialogPreferences {
+  static bool _dontShowUploadPopup = false;
+  
+  static bool get dontShowUploadPopup => _dontShowUploadPopup;
+  
+  static void setDontShowUploadPopup(bool value) {
+    _dontShowUploadPopup = value;
+  }
+}
 
 class UploadScreen extends StatefulWidget {
   final String? selectedMedicine;
@@ -17,14 +29,32 @@ class _UploadScreenState extends State<UploadScreen> {
   File? frontImageFile;
   File? backImageFile;
   final ImagePicker _picker = ImagePicker();
+  bool _dontShowAgain = false;
 
   @override
   void initState() {
     super.initState();
-    // Show popup with example images when screen opens
+    // Show popup with example images after a delay when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showExampleDialog();
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _checkAndShowDialog();
+        }
+      });
     });
+  }
+
+  Future<void> _checkAndShowDialog() async {
+    final dontShowAgain = _DialogPreferences.dontShowUploadPopup;
+    
+    print('Upload screen: dontShowAgain = $dontShowAgain');
+    
+    if (!dontShowAgain) {
+      print('Upload screen: Showing dialog now');
+      _showExampleDialog();
+    } else {
+      print('Upload screen: Dialog disabled by user preference');
+    }
   }
 
   @override
@@ -138,15 +168,20 @@ class _UploadScreenState extends State<UploadScreen> {
   }
 
   void _showExampleDialog() {
-    showDialog(
+    print('Upload screen: _showExampleDialog called');
+    showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Container(
+      barrierLabel: '',
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Container(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -282,13 +317,77 @@ class _UploadScreenState extends State<UploadScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
+                
+                // Don't show again checkbox
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        print('Checkbox tapped! Current value: $_dontShowAgain');
+                        setDialogState(() {
+                          _dontShowAgain = !_dontShowAgain;
+                        });
+                        print('Checkbox new value: $_dontShowAgain');
+                      },
+                      child: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: _dontShowAgain ? const Color(0xFF4285F4) : Colors.transparent,
+                          border: Border.all(
+                            color: _dontShowAgain ? const Color(0xFF4285F4) : Colors.grey.shade400,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: _dontShowAgain
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 16,
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          print('Text tapped! Current value: $_dontShowAgain');
+                          setDialogState(() {
+                            _dontShowAgain = !_dontShowAgain;
+                          });
+                          print('Text new value: $_dontShowAgain');
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'Don\'t show this again',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 8),
                 
                 // Close button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () {
+                      if (_dontShowAgain) {
+                        _DialogPreferences.setDontShowUploadPopup(true);
+                        print('Upload screen: Preference saved - dialog will be disabled');
+                      }
+                      Navigator.of(context).pop();
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4285F4),
                       foregroundColor: Colors.white,
@@ -309,6 +408,24 @@ class _UploadScreenState extends State<UploadScreen> {
               ],
             ),
           ),
+        );
+          },
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        // Scale and fade when opening, only fade when closing
+        return AnimatedBuilder(
+          animation: animation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: animation.value,
+              child: Opacity(
+                opacity: animation.value,
+                child: child,
+              ),
+            );
+          },
+          child: child,
         );
       },
     );

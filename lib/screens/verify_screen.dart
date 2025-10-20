@@ -46,232 +46,171 @@ class _VerifyScreenState extends State<VerifyScreen> {
     return BaseLayout(
       currentNavIndex: 1, // Set to Verify tab
       title: 'Upload Drug Images',
+      showBackButton: true, // Show back button instead of logo
       padding: const EdgeInsets.all(24),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Select Medicine Title
-            const Text(
-              'Select Medicine',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Medicine Grid
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 2.5,
-              ),
-              itemCount: medicines.length,
-              itemBuilder: (context, index) {
-                final medicine = medicines[index];
-                final isSelected = _selectedMedicine == medicine['name'];
-
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedMedicine = medicine['name'];
-                    });
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color:
-                            isSelected
-                                ? const Color(0xFF4285F4)
-                                : Colors.transparent,
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 8,
-                          spreadRadius: 0,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Select Medicine Title
+                  const Text(
+                    'Select Medicine',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
                     ),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 12),
-                        // Medicine Image
-                        Container(
-                          width: 48,
-                          height: 48,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Medicine Grid
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 2.5,
+                    ),
+                    itemCount: medicines.length,
+                    itemBuilder: (context, index) {
+                      final medicine = medicines[index];
+                      final isSelected = _selectedMedicine == medicine['name'];
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedMedicine = medicine['name'];
+                          });
+                        },
+                        child: Container(
                           decoration: BoxDecoration(
-                            color: medicine['color'].withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
-                            child: Image.asset(
-                              medicine['image'],
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Icon(
-                                  Icons.medication,
-                                  color: medicine['color'],
-                                  size: 24,
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // Medicine Name
-                        Expanded(
-                          child: Text(
-                            medicine['name'],
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
                               color:
                                   isSelected
                                       ? const Color(0xFF4285F4)
-                                      : Colors.black,
+                                      : Colors.transparent,
+                              width: 2,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 8,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 12),
+                              // Medicine Image
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: medicine['color'].withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: Image.asset(
+                                    medicine['image'],
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Icon(
+                                        Icons.medication,
+                                        color: medicine['color'],
+                                        size: 24,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              // Medicine Name
+                              Expanded(
+                                child: Text(
+                                  medicine['name'],
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color:
+                                        isSelected
+                                            ? const Color(0xFF4285F4)
+                                            : Colors.black,
+                                  ),
+                                ),
+                              ),
+                              // Selection Indicator
+                              if (isSelected)
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF4285F4),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 14,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        // Selection Indicator
-                        if (isSelected)
-                          Container(
-                            width: 20,
-                            height: 20,
-                            margin: const EdgeInsets.only(right: 12),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF4285F4),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: 14,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 32),
-
-            // Warning Message
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF8E1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFB74D), width: 1),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    color: const Color(0xFFFF8F00),
-                    size: 24,
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Make sure the packaging is clear and well-lit.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFFE65100),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ],
               ),
             ),
+          ),
 
-            const SizedBox(height: 24),
-
-            // Proceed Button
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (_selectedMedicine == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please select a medicine')),
-                    );
-                    return;
-                  }
-                  await _showPreUploadReminder(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(
-                    0xFF4285F4,
-                  ).withOpacity(_selectedMedicine != null ? 1.0 : 0.5),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  disabledBackgroundColor: const Color(
-                    0xFF4285F4,
-                  ).withOpacity(0.3),
+          // Proceed Button - Fixed at bottom
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () async {
+                if (_selectedMedicine == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select a medicine')),
+                  );
+                  return;
+                }
+                await _showPreUploadReminder(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(
+                  0xFF4285F4,
+                ).withOpacity(_selectedMedicine != null ? 1.0 : 0.5),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'Proceed',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+                disabledBackgroundColor: const Color(
+                  0xFF4285F4,
+                ).withOpacity(0.3),
+              ),
+              child: const Text(
+                'Proceed',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
-
-            const SizedBox(height: 32),
-
-            // Safety Tips Section
-            const Text(
-              'Safety Tips',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Safety Tips List
-            _buildSafetyTip(
-              Icons.verified_user,
-              'Always verify the security seal before use',
-              const Color(0xFF4285F4),
-            ),
-            const SizedBox(height: 12),
-            _buildSafetyTip(
-              Icons.calendar_today,
-              'Check expiration date and packaging integrity',
-              const Color(0xFF4285F4),
-            ),
-            const SizedBox(height: 12),
-            _buildSafetyTip(
-              Icons.store,
-              'Buy only from licensed pharmacies',
-              const Color(0xFF4285F4),
-            ),
-
-            const SizedBox(height: 100), // Extra space for bottom navigation
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -373,11 +312,26 @@ class _VerifyScreenState extends State<VerifyScreen> {
                               Navigator.of(ctx).pop(); // close dialog
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (_) => UploadScreen(
-                                        selectedMedicine: _selectedMedicine!,
-                                      ),
+                                PageRouteBuilder(
+                                  pageBuilder: (context, animation, secondaryAnimation) => UploadScreen(
+                                    selectedMedicine: _selectedMedicine!,
+                                  ),
+                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                    // Slide in from right when entering
+                                    const begin = Offset(1.0, 0.0);
+                                    const end = Offset.zero;
+                                    const curve = Curves.easeOutCubic;
+
+                                    var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                                    var offsetAnimation = animation.drive(tween);
+
+                                    return SlideTransition(
+                                      position: offsetAnimation,
+                                      child: child,
+                                    );
+                                  },
+                                  transitionDuration: const Duration(milliseconds: 300),
+                                  reverseTransitionDuration: const Duration(milliseconds: 300),
                                 ),
                               );
                             },

@@ -8,76 +8,49 @@ class AboutScreen extends StatefulWidget {
   State<AboutScreen> createState() => _AboutScreenState();
 }
 
-class _AboutScreenState extends State<AboutScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _fadeAnimationController;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _fadeAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _fadeAnimationController, curve: Curves.easeOut),
-    );
-
-    _fadeAnimationController.forward();
-  }
-
-  @override
-  void dispose() {
-    _fadeAnimationController.dispose();
-    super.dispose();
-  }
+class _AboutScreenState extends State<AboutScreen> {
 
   @override
   Widget build(BuildContext context) {
     return BaseLayout(
       currentNavIndex: 2,
       title: 'About SafeMed',
+      showBackButton: true, // Show back button instead of logo
       padding: const EdgeInsets.all(24),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // App Header Section
-              _buildAppHeader(),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // App Header Section
+            _buildAppHeader(),
 
-              const SizedBox(height: 32),
+            const SizedBox(height: 32),
 
-              // Mission Section
-              _buildMissionSection(),
+            // Mission Section
+            _buildMissionSection(),
 
-              const SizedBox(height: 32),
+            const SizedBox(height: 32),
 
-              // Key Features Section
-              _buildFeaturesSection(),
+            // Key Features Section
+            _buildFeaturesSection(),
 
-              const SizedBox(height: 32),
+            const SizedBox(height: 32),
 
-              // Team Section
-              _buildTeamSection(),
+            // Team Section
+            _buildTeamSection(),
 
-              const SizedBox(height: 32),
+            const SizedBox(height: 32),
 
-              // Technology Section
-              _buildTechnologySection(),
+            // Technology Section
+            _buildTechnologySection(),
 
-              const SizedBox(height: 32),
+            const SizedBox(height: 32),
 
-              // Version & Legal
-              _buildVersionSection(),
+            // Version & Legal
+            _buildVersionSection(),
 
-              const SizedBox(height: 100), // Extra space for bottom navigation
-            ],
-          ),
+            const SizedBox(height: 100), // Extra space for bottom navigation
+          ],
         ),
       ),
     );

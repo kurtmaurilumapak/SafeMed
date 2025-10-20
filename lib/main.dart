@@ -51,18 +51,95 @@ class MyApp extends StatelessWidget {
         ),
       ),
       initialRoute: '/',
-      routes: {
-        '/': (context) => const OnboardingScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/verify': (context) => const VerifyScreen(),
-        '/upload': (context) => const UploadScreen(),
-        '/about': (context) => const AboutScreen(),
-      },
-      // Handle unknown routes
-      onUnknownRoute: (settings) {
-        return MaterialPageRoute(
-          builder: (context) => const OnboardingScreen(),
-        );
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/':
+            return PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const OnboardingScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return child;
+              },
+            );
+          case '/home':
+            return PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return child;
+              },
+            );
+          case '/verify':
+            return PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const VerifyScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                // Use the same easing forward and reverse to avoid uneven speed
+                final curved = CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                  reverseCurve: Curves.easeOutCubic,
+                );
+                const begin = Offset(1.0, 0.0);
+                const end = Offset.zero;
+                final tween = Tween(begin: begin, end: end);
+                return SlideTransition(
+                  position: tween.animate(curved),
+                  child: child,
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 300),
+              reverseTransitionDuration: const Duration(milliseconds: 300),
+            );
+          case '/upload':
+            final args = settings.arguments as Map<String, dynamic>?;
+            final selectedMedicine = args?['selectedMedicine'] as String?;
+            return PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => UploadScreen(
+                selectedMedicine: selectedMedicine ?? '',
+              ),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                final curved = CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                  reverseCurve: Curves.easeOutCubic,
+                );
+                const begin = Offset(1.0, 0.0);
+                const end = Offset.zero;
+                final tween = Tween(begin: begin, end: end);
+                return SlideTransition(
+                  position: tween.animate(curved),
+                  child: child,
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 300),
+              reverseTransitionDuration: const Duration(milliseconds: 300),
+            );
+          case '/about':
+            return PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const AboutScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                final curved = CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                  reverseCurve: Curves.easeOutCubic,
+                );
+                const begin = Offset(1.0, 0.0);
+                const end = Offset.zero;
+                final tween = Tween(begin: begin, end: end);
+                return SlideTransition(
+                  position: tween.animate(curved),
+                  child: child,
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 350),
+              reverseTransitionDuration: const Duration(milliseconds: 350),
+            );
+          default:
+            return PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const OnboardingScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return child;
+              },
+            );
+        }
       },
     );
   }

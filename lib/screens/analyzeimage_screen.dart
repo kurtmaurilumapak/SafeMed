@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import '../widgets/base_layout.dart';
 import 'results_screen.dart';
 import '../services/pytorch_lite_service.dart';
 import 'dart:async'; // for Timer
@@ -88,7 +87,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
     try {
       // STEP 1: Identify medicine type (front + back) with tolerance
       setState(() { _currentStep = 'Identifying medicine type [FRONT IMAGE]…'; });
-      _startProgressTicker(0.10);
+      _startProgressTicker(0.20);
       await ModelService().preloadIdentifier();
 
       final selected = widget.selectedMedicine!;
@@ -102,7 +101,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
 
       // Additionally verify the BACK image with the identifier before heavy analysis
       setState(() { _currentStep = 'Identifying medicine type [BACK IMAGE]…'; });
-      _startProgressTicker(0.15);
+      _startProgressTicker(0.40);
       _idLocation = 'BACK';
       final backDecision = await ModelService().identifySelected(widget.backImage!, selected);
       if (!backDecision.matchesSelected) {
@@ -111,13 +110,13 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
 
       // STEP 2: Load/preload model
       setState(() { _currentStep = 'Loading model…'; });
-      _startProgressTicker(0.25);
+      _startProgressTicker(0.50);
       // If you didn't preload on VerifyScreen, this ensures the model is ready:
       await ModelService().preload(widget.selectedMedicine!);
 
       // STEP 3: Detect on FRONT
       setState(() { _currentStep = 'Detecting on FRONT image…'; });
-      _startProgressTicker(0.65);
+      _startProgressTicker(0.70);
       final front = await ModelService().scoreOne(
         medicine: widget.selectedMedicine!,
         image: widget.frontImage!,
@@ -126,7 +125,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
 
       // STEP 4: Detect on BACK
       setState(() { _currentStep = 'Detecting on BACK image…'; });
-      _startProgressTicker(0.92);
+      _startProgressTicker(0.90);
       final back = await ModelService().scoreOne(
         medicine: widget.selectedMedicine!,
         image: widget.backImage!,
@@ -250,254 +249,253 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
 
   @override
   Widget build(BuildContext context) {
-    return BaseLayout(
-      title: 'Verifying Medicine',
-      currentNavIndex: 1,
-      showBackButton: true,
-      padding: const EdgeInsets.all(24),
-      body: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight:
-            MediaQuery.of(context).size.height -
-                200, // Account for AppBar and BottomNav
-          ),
-          child: Column(
-            children: [
-              Expanded(
-                flex: 0, // Don't force expansion
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Scanning Animation
-                    Container(
-                      width: 180,
-                      height: 180,
-                      child: AnimatedBuilder(
-                        animation: _scanAnimation,
-                        builder: (context, child) {
-                          return Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // Outer scanning circle
-                              Container(
-                                width: 180,
-                                height: 180,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.grey.shade300,
-                                    width: 2,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight:
+                MediaQuery.of(context).size.height -
+                    200, // Account for SafeArea
+              ),
+              child: Column(
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Scanning Animation
+                      Container(
+                        width: 180,
+                        height: 180,
+                        child: AnimatedBuilder(
+                          animation: _scanAnimation,
+                          builder: (context, child) {
+                            return Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // Outer scanning circle
+                                Container(
+                                  width: 180,
+                                  height: 180,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                      width: 2,
+                                    ),
                                   ),
                                 ),
-                              ),
 
-                              // Animated scanning arcs
-                              Transform.rotate(
-                                angle: _scanAnimation.value * 2 * 3.14159,
-                                child: Container(
-                                  width: 160,
-                                  height: 160,
-                                  child: CustomPaint(
-                                    painter: ScanningArcsPainter(),
-                                  ),
-                                ),
-                              ),
-
-                              // Center medicine icon
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF4285F4),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.medical_services_rounded,
-                                  color: Colors.white,
-                                  size: 30,
-                                ),
-                              ),
-
-                              // Checkmark when complete
-                              if (_analysisComplete)
-                                Positioned(
-                                  bottom: 15,
-                                  right: 15,
+                                // Animated scanning arcs
+                                Transform.rotate(
+                                  angle: _scanAnimation.value * 2 * 3.14159,
                                   child: Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF4285F4),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.check,
-                                      color: Colors.white,
-                                      size: 18,
+                                    width: 160,
+                                    height: 160,
+                                    child: CustomPaint(
+                                      painter: ScanningArcsPainter(),
                                     ),
                                   ),
                                 ),
-                            ],
-                          );
-                        },
+
+                                // Center medicine icon
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF4285F4),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.medical_services_rounded,
+                                    color: Colors.white,
+                                    size: 30,
+                                  ),
+                                ),
+
+                                // Checkmark when complete
+                                if (_analysisComplete)
+                                  Positioned(
+                                    bottom: 15,
+                                    right: 15,
+                                    child: Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF4285F4),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
-                    // Analysis Status
-                    Text(
-                      _analysisComplete ? 'Analyzing Complete!' : 'Analyzing Image',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    if (!_analysisComplete)
+                      // Analysis Status
                       Text(
-                        'Please wait while we scan your drug\nimages for authenticity. This might\ntake a few seconds.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                          height: 1.4,
+                        _analysisComplete ? 'Analyzing Complete!' : 'Analyzing Image',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
                         ),
                       ),
 
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 8),
 
-                    // Progress Bar
-                    Container(
-                      width: double.infinity,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      child: Row(
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            width:
-                            (MediaQuery.of(context).size.width - 48) *
-                                _progress,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF4285F4), Color(0xFF1976D2)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Progress Text and Percentage
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            _currentStep,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                      if (!_analysisComplete)
                         Text(
-                          '${(_progress * 100).toInt()}%',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF4285F4),
+                          'Please wait while we scan your drug\nimages for authenticity. This might\ntake a few seconds.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                            height: 1.4,
                           ),
                         ),
-                      ],
-                    ),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 32),
 
-                    // Tip Section
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4285F4).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                      // Progress Bar
+                      Container(
+                        width: double.infinity,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Row(
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              width:
+                              (MediaQuery.of(context).size.width - 48) *
+                                  _progress,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF4285F4), Color(0xFF1976D2)],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Row(
+
+                      const SizedBox(height: 8),
+
+                      // Progress Text and Percentage
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF4285F4),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.lightbulb_outline,
-                              color: Colors.white,
-                              size: 12,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Expanded(
+                          Flexible(
                             child: Text(
-                              'Tip: Keep your app open during analysis',
+                              _currentStep,
                               style: TextStyle(
                                 fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF4285F4),
+                                color: Colors.grey.shade600,
                               ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            '${(_progress * 100).toInt()}%',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF4285F4),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
 
-              const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-              // View Results Button (shown when analysis is complete)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _analysisComplete ? _handleViewResults : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4285F4),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                      // Tip Section
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4285F4).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4285F4),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.lightbulb_outline,
+                                color: Colors.white,
+                                size: 12,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                'Tip: Keep your app open during analysis',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF4285F4),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      child: const Text(
-                        'View Results',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // View Results Button (shown when analysis is complete)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _analysisComplete ? _handleViewResults : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4285F4),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'View Results',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

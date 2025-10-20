@@ -4,9 +4,9 @@ class BaseLayout extends StatefulWidget {
   final Widget body;
   final String? title;
   final bool showBackButton;
+  final bool showHomeButton;
   final List<Widget>? actions;
   final int currentNavIndex;
-  final bool showBottomNav;
   final Color? backgroundColor;
   final EdgeInsetsGeometry? padding;
 
@@ -15,9 +15,9 @@ class BaseLayout extends StatefulWidget {
     required this.body,
     this.title,
     this.showBackButton = false,
+    this.showHomeButton = false,
     this.actions,
     this.currentNavIndex = 0,
-    this.showBottomNav = true,
     this.backgroundColor,
     this.padding,
   });
@@ -27,14 +27,12 @@ class BaseLayout extends StatefulWidget {
 }
 
 class _BaseLayoutState extends State<BaseLayout> with TickerProviderStateMixin {
-  int _selectedIndex = 0;
   late AnimationController _animationController;
   late Animation<double> _animation;
 
   @override
   void initState() {
     super.initState();
-    _selectedIndex = widget.currentNavIndex;
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -44,16 +42,6 @@ class _BaseLayoutState extends State<BaseLayout> with TickerProviderStateMixin {
       curve: Curves.easeInOut,
     );
     _animationController.forward();
-  }
-
-  @override
-  void didUpdateWidget(BaseLayout oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentNavIndex != widget.currentNavIndex) {
-      setState(() {
-        _selectedIndex = widget.currentNavIndex;
-      });
-    }
   }
 
   @override
@@ -71,8 +59,7 @@ class _BaseLayoutState extends State<BaseLayout> with TickerProviderStateMixin {
           widget.padding != null
               ? Padding(padding: widget.padding!, child: widget.body)
               : widget.body,
-      bottomNavigationBar:
-          widget.showBottomNav ? _buildBottomNavigation() : null,
+      bottomNavigationBar: null,
     );
   }
 
@@ -112,224 +99,156 @@ class _BaseLayoutState extends State<BaseLayout> with TickerProviderStateMixin {
                     color: Color(0xFF4285F4),
                     size: 20,
                   ),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
                 ),
               )
-              : null,
-      title: FadeTransition(
-        opacity: _animation,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(-0.3, 0),
-            end: Offset.zero,
-          ).animate(_animation),
-          child: Row(
-            children: [
-              Hero(
-                tag: 'app_logo',
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF4285F4), Color(0xFF34A853)],
+              : widget.showHomeButton
+                  ? Container(
+                    margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4285F4).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF4285F4).withOpacity(0.3),
-                        blurRadius: 8,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 2),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.home_rounded,
+                        color: Color(0xFF4285F4),
+                        size: 20,
                       ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.medical_services_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.title ?? 'SafeMed',
-                    style: const TextStyle(
-                      color: Color(0xFF1A1A1A),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
+                      onPressed: () {
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/home',
+                          (route) => false,
+                        );
+                      },
+                    ),
+                  )
+                  : null,
+      title: (widget.showBackButton || widget.showHomeButton)
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.title ?? 'SafeMed',
+                      style: const TextStyle(
+                        color: Color(0xFF1A1A1A),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    // Only show "Your Health Guardian" on home screen
+                    if (ModalRoute.of(context)?.settings.name == '/home')
+                      Text(
+                        'Your Health Guardian',
+                        style: TextStyle(
+                          color: const Color(0xFF1A1A1A).withOpacity(0.6),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                  ],
+                )
+              : FadeTransition(
+                  opacity: _animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(-0.3, 0),
+                      end: Offset.zero,
+                    ).animate(_animation),
+                    child: Row(
+                      children: [
+                        Hero(
+                          tag: 'app_logo',
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF4285F4), Color(0xFF34A853)],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF4285F4).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  spreadRadius: 0,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.medical_services_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.title ?? 'SafeMed',
+                              style: const TextStyle(
+                                color: Color(0xFF1A1A1A),
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            Text(
+                              'Your Health Guardian',
+                              style: TextStyle(
+                                color: const Color(0xFF1A1A1A).withOpacity(0.6),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  Text(
-                    'Your Health Guardian',
-                    style: TextStyle(
-                      color: const Color(0xFF1A1A1A).withOpacity(0.6),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions:
-          widget.actions != null
-              ? [
-                ...widget.actions!.map(
-                  (action) => Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: action,
-                  ),
                 ),
-              ]
-              : null,
-    );
-  }
-
-  Widget _buildBottomNavigation() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            spreadRadius: 0,
-            offset: const Offset(0, -4),
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 6,
-            spreadRadius: 0,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
-        child: SizedBox(
-          height: 80,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildNavItem(0, Icons.home_rounded, 'Home'),
-              _buildNavItem(1, Icons.camera_alt_rounded, 'Verify'),
-              _buildNavItem(2, Icons.info_outline_rounded, 'About'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String label) {
-    final isSelected = _selectedIndex == index;
-
-    return InkWell(
-      onTap: () {
-        if (_selectedIndex != index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-          // Handle navigation based on index
-          switch (index) {
-            case 0:
-              if (ModalRoute.of(context)?.settings.name != '/home') {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/home',
-                  (route) => false,
-                );
-              }
-              break;
-            case 1:
-              if (ModalRoute.of(context)?.settings.name != '/verify') {
-                Navigator.pushReplacementNamed(context, '/verify');
-              }
-              break;
-            case 2:
-              if (ModalRoute.of(context)?.settings.name != '/about') {
-                Navigator.pushReplacementNamed(context, '/about');
-              }
-              break;
-          }
-        }
-      },
-      splashColor: const Color(0xFF4285F4).withOpacity(0.1),
-      highlightColor: Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
-      child: SizedBox(
-        width: 80,
-        height: 64,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color:
-                    isSelected
-                        ? const Color(0xFF4285F4).withOpacity(0.15)
-                        : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                border:
-                    isSelected
-                        ? Border.all(
-                          color: const Color(0xFF4285F4).withOpacity(0.2),
-                          width: 1,
-                        )
-                        : null,
-              ),
-              child: AnimatedScale(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                scale: isSelected ? 1.1 : 1.0,
-                child: Icon(
-                  icon,
-                  color:
-                      isSelected
-                          ? const Color(0xFF4285F4)
-                          : const Color(0xFF9E9E9E),
-                  size: 24,
-                ),
-              ),
+      actions: [
+        if (widget.actions != null)
+          ...widget.actions!.map(
+            (action) => Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: action,
             ),
-            const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              style: TextStyle(
-                color:
-                    isSelected
-                        ? const Color(0xFF4285F4)
-                        : const Color(0xFF9E9E9E),
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                letterSpacing: isSelected ? 0.2 : 0.0,
-              ),
-              child: Text(label),
+          ),
+        // Add about icon to the right side (only if not on about screen and not showing home button)
+        if (!widget.showBackButton && !widget.showHomeButton && ModalRoute.of(context)?.settings.name != '/about')
+          Container(
+            margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4285F4).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ),
-      ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.info_outline_rounded,
+                color: Color(0xFF4285F4),
+                size: 20,
+              ),
+              onPressed: () {
+                if (ModalRoute.of(context)?.settings.name != '/about') {
+                  Navigator.pushNamed(context, '/about');
+                }
+              },
+            ),
+          ),
+      ],
     );
   }
+
 }
