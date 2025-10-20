@@ -32,9 +32,15 @@ android {
 
     buildTypes {
         getByName("release") {
-            // Correct Kotlin DSL syntax:
-            isShrinkResources = false
-            isMinifyEnabled = false
+            // Enable code & resource shrinking for smaller APK/AAB
+            isShrinkResources = true
+            isMinifyEnabled = true
+
+            // Use default optimized ProGuard rules + project rules
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                file("proguard-rules.pro")
+            )
 
             // Signing config stays the same:
             signingConfig = signingConfigs.getByName("debug")

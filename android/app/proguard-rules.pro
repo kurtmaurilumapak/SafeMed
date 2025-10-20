@@ -1,0 +1,12 @@
+# Conservative keep rules for Flutter + pytorch_lite. Add more if needed after testing.
+-keep class com.example.safemed.** { *; }
+-keep class io.flutter.** { *; }
+-keep class io.flutter.plugins.** { *; }
+-keep class kotlin.Metadata { *; }
+-keep class org.pytorch.** { *; }
+-keep class com.github.am15h.** { *; }
+-keep class com.github.am15h.pytorch_lite.** { *; }
+-dontwarn kotlin.**
+-dontwarn org.jetbrains.annotations.**
+-renamesourcefileattribute SourceFile
+-keepattributes SourceFile,LineNumberTable
