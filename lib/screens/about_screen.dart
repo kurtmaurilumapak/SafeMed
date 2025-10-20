@@ -62,11 +62,6 @@ class _AboutScreenState extends State<AboutScreen>
 
               const SizedBox(height: 32),
 
-              // Statistics Section
-              _buildStatsSection(),
-
-              const SizedBox(height: 32),
-
               // Team Section
               _buildTeamSection(),
 
@@ -74,11 +69,6 @@ class _AboutScreenState extends State<AboutScreen>
 
               // Technology Section
               _buildTechnologySection(),
-
-              const SizedBox(height: 32),
-
-              // Contact Section
-              _buildContactSection(),
 
               const SizedBox(height: 32),
 
@@ -193,14 +183,14 @@ class _AboutScreenState extends State<AboutScreen>
 
   Widget _buildMissionSection() {
     return _buildSection(
-      title: 'Our Mission',
+      title: 'About Our App',
       icon: Icons.flag_rounded,
       iconColor: const Color(0xFF4285F4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'We\'re committed to protecting public health by providing reliable verification of medication authenticity, helping users identify counterfeit medicines and ensuring safe pharmaceutical consumption.',
+            'Our app helps you stay safe by checking if your medicines are genuine. With just a quick scan, you can verify your medication’s authenticity and avoid counterfeit products, giving you peace of mind every time you take your medicine.',
             style: TextStyle(fontSize: 16, color: Colors.black87, height: 1.6),
           ),
           const SizedBox(height: 16),
@@ -261,13 +251,6 @@ class _AboutScreenState extends State<AboutScreen>
         'description':
             'Advanced algorithms detect counterfeit medicines with high accuracy',
         'color': const Color(0xFF34A853),
-      },
-      {
-        'icon': Icons.speed_rounded,
-        'title': 'Real-time Results',
-        'description':
-            'Get verification results in seconds with detailed analysis reports',
-        'color': const Color(0xFFFF6B35),
       },
       {
         'icon': Icons.verified_user_rounded,
@@ -352,27 +335,6 @@ class _AboutScreenState extends State<AboutScreen>
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildStatsSection() {
-    return _buildSection(
-      title: 'Our Impact',
-      icon: Icons.analytics_rounded,
-      iconColor: const Color(0xFFFF6B35),
-      child: Row(
-        children: [
-          _buildStatCard('10K+', 'Medicines\nScanned', const Color(0xFF4285F4)),
-          const SizedBox(width: 16),
-          _buildStatCard('95%', 'Accuracy\nRate', const Color(0xFF34A853)),
-          const SizedBox(width: 16),
-          _buildStatCard(
-            '500+',
-            'Counterfeits\nDetected',
-            const Color(0xFFFF5252),
-          ),
-        ],
       ),
     );
   }
@@ -513,7 +475,7 @@ class _AboutScreenState extends State<AboutScreen>
           _buildTechChip('Dart', const Color(0xFF0175C2)),
           _buildTechChip('Machine Learning', const Color(0xFF4CAF50)),
           _buildTechChip('Computer Vision', const Color(0xFF9C27B0)),
-          _buildTechChip('Firebase', const Color(0xFFFF9800)),
+          _buildTechChip('Roboflow', const Color(0xFFFF9800)),
           _buildTechChip('TensorFlow', const Color(0xFFFF6F00)),
         ],
       ),
@@ -535,41 +497,6 @@ class _AboutScreenState extends State<AboutScreen>
           fontWeight: FontWeight.w600,
           color: color,
         ),
-      ),
-    );
-  }
-
-  Widget _buildContactSection() {
-    return _buildSection(
-      title: 'Get in Touch',
-      icon: Icons.contact_support_rounded,
-      iconColor: const Color(0xFF607D8B),
-      child: Column(
-        children: [
-          _buildContactItem(
-            Icons.email_rounded,
-            'support@medverify.com',
-            'Email us for support',
-            const Color(0xFF4285F4),
-            () => _showContactDialog('Email', 'support@medverify.com'),
-          ),
-          const SizedBox(height: 12),
-          _buildContactItem(
-            Icons.phone_rounded,
-            '+1 (234) 567-890',
-            'Call our helpline',
-            const Color(0xFF34A853),
-            () => _showContactDialog('Phone', '+1 (234) 567-890'),
-          ),
-          const SizedBox(height: 12),
-          _buildContactItem(
-            Icons.web_rounded,
-            'www.safemed.com',
-            'Visit our website',
-            const Color(0xFF9C27B0),
-            () => _showContactDialog('Website', 'www.safemed.com'),
-          ),
-        ],
       ),
     );
   }
