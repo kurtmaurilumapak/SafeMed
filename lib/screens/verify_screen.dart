@@ -20,11 +20,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
       'color': const Color(0xFF4285F4),
     },
     {
-      'name': 'Decolgen',
-      'image': 'assets/decolgen.png',
-      'color': const Color(0xFFFF9800),
-    },
-    {
       'name': 'Alaxan',
       'image': 'assets/alaxan.png',
       'color': const Color(0xFFFF6B35),
@@ -35,13 +30,8 @@ class _VerifyScreenState extends State<VerifyScreen> {
       'color': const Color(0xFF4CAF50),
     },
     {
-      'name': 'Diatabs',
-      'image': 'assets/diatabs.png',
-      'color': const Color(0xFF9E9E9E),
-    },
-    {
-      'name': 'Solmux',
-      'image': 'assets/solmux.png',
+      'name': 'Medicol',
+      'image': 'assets/medicol.png',
       'color': const Color(0xFF607D8B),
     },
     {
@@ -99,9 +89,9 @@ class _VerifyScreenState extends State<VerifyScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color:
-                        isSelected
-                            ? const Color(0xFF4285F4)
-                            : Colors.transparent,
+                            isSelected
+                                ? const Color(0xFF4285F4)
+                                : Colors.transparent,
                         width: 2,
                       ),
                       boxShadow: [
@@ -150,9 +140,9 @@ class _VerifyScreenState extends State<VerifyScreen> {
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color:
-                              isSelected
-                                  ? const Color(0xFF4285F4)
-                                  : Colors.black,
+                                  isSelected
+                                      ? const Color(0xFF4285F4)
+                                      : Colors.black,
                             ),
                           ),
                         ),
@@ -325,78 +315,93 @@ class _VerifyScreenState extends State<VerifyScreen> {
       barrierDismissible: false,
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (ctx, setLocalState) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            title: Center(
-              child: Text(
-                'A Reminder Before You Proceed',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                SizedBox(height: 4),
-                Text('• Upload the exact medicine you selected to avoid errors.'),
-                SizedBox(height: 6),
-                Text('• Ensure photos are clear, well-lit, and in focus.'),
-                SizedBox(height: 6),
-                Text('• Do NOT include multiple medicines in one image.'),
-              ],
-            ),
-            actionsAlignment: MainAxisAlignment.center,
-            actions: [
-              TextButton(
-                onPressed: isLoading ? null : () => Navigator.of(ctx).pop(),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: isLoading
-                    ? null
-                    : () async {
-                  if (_selectedMedicine == null) return;
-                  setLocalState(() => isLoading = true);
-                  try {
-                    await ModelService().preload(_selectedMedicine!); // load the model here
-                  } catch (e) {
-                    setLocalState(() => isLoading = false);
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to load model: $e')),
-                    );
-                    return;
-                  }
-
-                  if (!mounted) return;
-                  Navigator.of(ctx).pop(); // close dialog
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => UploadScreen(
-                        selectedMedicine: _selectedMedicine!,
-                      ),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4285F4),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+          builder:
+              (ctx, setLocalState) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                title: Center(
+                  child: Text(
+                    'A Reminder Before You Proceed',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                child: isLoading
-                    ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-                    : const Text('Proceed'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    SizedBox(height: 4),
+                    Text(
+                      '• Upload the exact medicine you selected to avoid errors.',
+                    ),
+                    SizedBox(height: 6),
+                    Text('• Ensure photos are clear, well-lit, and in focus.'),
+                    SizedBox(height: 6),
+                    Text('• Do NOT include multiple medicines in one image.'),
+                  ],
+                ),
+                actionsAlignment: MainAxisAlignment.center,
+                actions: [
+                  TextButton(
+                    onPressed: isLoading ? null : () => Navigator.of(ctx).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed:
+                        isLoading
+                            ? null
+                            : () async {
+                              if (_selectedMedicine == null) return;
+                              setLocalState(() => isLoading = true);
+                              try {
+                                await ModelService().preload(
+                                  _selectedMedicine!,
+                                ); // load the model here
+                              } catch (e) {
+                                setLocalState(() => isLoading = false);
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to load model: $e'),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              if (!mounted) return;
+                              Navigator.of(ctx).pop(); // close dialog
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) => UploadScreen(
+                                        selectedMedicine: _selectedMedicine!,
+                                      ),
+                                ),
+                              );
+                            },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4285F4),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child:
+                        isLoading
+                            ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : const Text('Proceed'),
+                  ),
+                ],
               ),
-            ],
-          ),
         );
       },
     );
