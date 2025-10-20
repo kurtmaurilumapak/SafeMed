@@ -113,7 +113,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           ),
                           child: Center(
                             child: Image.asset(
-                              'assets/medlogo.png',
+                              'assets/medlogo1.png',
                               height: 70,
                               width: 70,
                               errorBuilder: (context, error, stackTrace) {
