@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:pytorch_lite/pytorch_lite.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'dart:math' show max, min;
 
 enum ModelType { yoloV8 }
@@ -54,6 +55,15 @@ class MultipleItemsDetectedException implements Exception {
   String toString() => 'Multiple medicine packs detected in the $location image.';
 }
 
+class MedicineMismatchException implements Exception {
+  final String detectedMedicine;
+  final String selectedMedicine;
+  MedicineMismatchException(this.detectedMedicine, this.selectedMedicine);
+
+  @override
+  String toString() => 'Detected $detectedMedicine but selected $selectedMedicine.';
+}
+
 class AnalysisResult {
   final double avgAuthenticScore;      // 0..1 (from capped sums)
   final double avgCounterfeitScore;    // 0..1 (from capped sums)
@@ -70,12 +80,40 @@ class AnalysisResult {
   });
 }
 
+// Simple containers for identifier results to avoid record syntax issues
+class IdentResult {
+  final String name;
+  final double confidence;
+  const IdentResult(this.name, this.confidence);
+}
+
+class IdentPair {
+  final IdentResult front;
+  final IdentResult back;
+  const IdentPair({required this.front, required this.back});
+}
+
+// Decision container for a single image vs selected medicine
+class IdentDecision {
+  final String bestName;        // top-1 predicted class name
+  final double bestConfidence;  // top-1 confidence 0..1
+  final bool matchesSelected;   // bestName == selected AND conf >= threshold
+  const IdentDecision({
+    required this.bestName,
+    required this.bestConfidence,
+    required this.matchesSelected,
+  });
+}
+
 class ModelService {
   static final ModelService _i = ModelService._();
   factory ModelService() => _i;
   ModelService._();
 
   static const double decisionThreshold = 0.75; // 75%
+  // Use the same confidence threshold for identifier as the medicine models
+  static const double identifierConfidenceThreshold = decisionThreshold;
+  static const double strongIdentifierThreshold = 0.85; // strong disagreement threshold
 
   // Register medicines here.
   //   authentic
@@ -99,12 +137,37 @@ class ModelService {
       inputW: 960,
       inputH: 960,
     ),
+    'Alaxan': const MedicineModelConfig(
+      modelPath: 'assets/models/alaxan.torchscript',
+      labelsPath: 'assets/labels/labels.txt',
+      inputW: 960,
+      inputH: 960,
+    ),
+    'Medicol': const MedicineModelConfig(
+      modelPath: 'assets/models/medicol.torchscript',
+      labelsPath: 'assets/labels/labels.txt',
+      inputW: 960,
+      inputH: 960,
+    ),
   };
 
+  // Identifier model configuration
+  static const MedicineModelConfig _identifierConfig = MedicineModelConfig(
+    modelPath: 'assets/models/identifier.torchscript',
+      labelsPath: 'assets/labels/identifier.txt',
+    inputW: 960,
+    inputH: 960,
+  );
+
   final Map<String, dynamic> _loaded = {}; // cached YOLO models per medicine
+  dynamic _identifierModel; // cached identifier model
 
   Future<void> preload(String medicine) async {
     await _ensureLoaded(medicine);
+  }
+
+  Future<void> preloadIdentifier() async {
+    await _ensureIdentifierLoaded();
   }
 
   Future<void> _ensureLoaded(String medicine) async {
@@ -112,15 +175,54 @@ class ModelService {
     if (cfg == null) throw Exception('No model registered for $medicine.');
     if (_loaded.containsKey(medicine)) return;
 
-    final model = await PytorchLite.loadObjectDetectionModel(
-      cfg.modelPath,
-      2, // authentic + counterfeit
-      cfg.inputW,
-      cfg.inputH,
-      labelPath: cfg.labelsPath,
-      objectDetectionModelType: ObjectDetectionModelType.yolov8,
-    );
-    _loaded[medicine] = model;
+    try {
+      print('[ModelService] Loading "$medicine" model from: ${cfg.modelPath}');
+      print('[ModelService] Using labels from: ${cfg.labelsPath}');
+
+      final model = await PytorchLite.loadObjectDetectionModel(
+        cfg.modelPath,
+        2, // authentic + counterfeit
+        cfg.inputW,
+        cfg.inputH,
+        labelPath: cfg.labelsPath,
+        objectDetectionModelType: ObjectDetectionModelType.yolov8,
+      );
+      _loaded[medicine] = model;
+      print('[ModelService] "$medicine" model loaded successfully');
+    } catch (e) {
+      print('[ModelService] Error loading "$medicine" model: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _ensureIdentifierLoaded() async {
+    if (_identifierModel != null) return;
+
+    try {
+      print('[ModelService] Loading identifier model from: ${_identifierConfig.modelPath}');
+      print('[ModelService] Using labels from: ${_identifierConfig.labelsPath}');
+      try {
+        final labelsText = await rootBundle.loadString(_identifierConfig.labelsPath!);
+        final lines = labelsText.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        print('[ModelService] Identifier label order: ' + lines.join(', '));
+      } catch (e) {
+        print('[ModelService] Could not read identifier labels asset: $e');
+      }
+      
+      final model = await PytorchLite.loadObjectDetectionModel(
+        _identifierConfig.modelPath,
+        5, // 5 medicine types: Biogesic, Neozep, Bioflu, Alaxan, Medicol
+        _identifierConfig.inputW,
+        _identifierConfig.inputH,
+        labelPath: _identifierConfig.labelsPath,
+        objectDetectionModelType: ObjectDetectionModelType.yolov8,
+      );
+      _identifierModel = model;
+      print('[ModelService] Identifier model loaded successfully');
+    } catch (e) {
+      print('[ModelService] Error loading identifier model: $e');
+      rethrow;
+    }
   }
 
   Future<PerImageScores> scoreOne({
@@ -131,6 +233,184 @@ class ModelService {
     await _ensureLoaded(medicine);
     final model = _loaded[medicine];
     return await _scoreImageYolo(model: model, imageFile: image, tag: tag);
+  }
+
+  Future<String> identifyMedicine(File image) async {
+    await _ensureIdentifierLoaded();
+    
+    final bytes = await image.readAsBytes();
+    final dets = await _identifierModel.getImagePrediction(
+      bytes,
+      minimumScore: 0.3, // Lower threshold for identification
+      iOUThreshold: 0.45,
+    ) as List<ResultObjectDetection>;
+
+    if (dets.isEmpty) {
+      throw Exception('No medicine detected in image');
+    }
+
+    // Find the detection with highest confidence
+    ResultObjectDetection bestDetection = dets.first;
+    for (final det in dets) {
+      if ((det.score ?? 0.0) > (bestDetection.score ?? 0.0)) {
+        bestDetection = det;
+      }
+    }
+
+    final detectedClass = bestDetection.className?.toLowerCase().trim() ?? '';
+    final confidence = bestDetection.score ?? 0.0;
+
+    print('[ModelService][identifier] detected: $detectedClass (${(confidence * 100).toStringAsFixed(1)}%)');
+
+    // Map detected class to medicine name
+    String medicineName;
+    switch (detectedClass) {
+      case 'biogesic':
+        medicineName = 'Biogesic';
+        break;
+      case 'neozep':
+        medicineName = 'Neozep';
+        break;
+      case 'bioflu':
+        medicineName = 'Bioflu';
+        break;
+      case 'alaxan':
+        medicineName = 'Alaxan';
+        break;
+      case 'medicol':
+        medicineName = 'Medicol';
+        break;
+      default:
+        throw Exception('Unknown medicine type detected: $detectedClass');
+    }
+
+    return medicineName;
+  }
+
+  // Returns the detected medicine and its confidence.
+  Future<IdentResult> identifyOne(File image) async {
+    await _ensureIdentifierLoaded();
+
+    final bytes = await image.readAsBytes();
+    final dets = await _identifierModel.getImagePrediction(
+      bytes,
+      minimumScore: 0.25,
+      iOUThreshold: 0.45,
+    ) as List<ResultObjectDetection>;
+
+    if (dets.isEmpty) {
+      return const IdentResult('unknown', 0.0);
+    }
+
+    ResultObjectDetection bestDetection = dets.first;
+    for (final det in dets) {
+      if ((det.score ?? 0.0) > (bestDetection.score ?? 0.0)) {
+        bestDetection = det;
+      }
+    }
+
+    final detectedClass = bestDetection.className?.toLowerCase().trim() ?? '';
+    final conf = (bestDetection.score ?? 0.0).clamp(0.0, 1.0);
+
+    String name;
+    switch (detectedClass) {
+      case 'biogesic': name = 'Biogesic'; break;
+      case 'neozep':   name = 'Neozep';   break;
+      case 'bioflu':   name = 'Bioflu';   break;
+      case 'alaxan':   name = 'Alaxan';   break;
+      case 'medicol':  name = 'Medicol';  break;
+      default:         name = 'unknown';  break;
+    }
+
+    print('[ModelService][identifier] best=$name conf=${(conf*100).toStringAsFixed(1)}%');
+    return IdentResult(name, conf);
+  }
+
+  // Identify from both images; returns both results and a recommended decision
+  Future<IdentPair> identifyBoth({required File front, required File back}) async {
+    final f = await identifyOne(front);
+    final b = await identifyOne(back);
+    return IdentPair(front: f, back: b);
+  }
+
+  // Return max confidence per class for an image (identifier model)
+  Future<Map<String, double>> identifyScores(File image) async {
+    await _ensureIdentifierLoaded();
+
+    final bytes = await image.readAsBytes();
+    final dets = await _identifierModel.getImagePrediction(
+      bytes,
+      minimumScore: 0.25,
+      iOUThreshold: 0.45,
+    ) as List<ResultObjectDetection>;
+
+    final Map<String, double> scores = {
+      'Biogesic': 0.0,
+      'Neozep': 0.0,
+      'Bioflu': 0.0,
+      'Alaxan': 0.0,
+      'Medicol': 0.0,
+    };
+
+    String mapName(String raw) {
+      switch (raw.toLowerCase().trim()) {
+        case 'biogesic': return 'Biogesic';
+        case 'neozep':   return 'Neozep';
+        case 'bioflu':   return 'Bioflu';
+        case 'alaxan':   return 'Alaxan';
+        case 'medicol':  return 'Medicol';
+        default:         return 'unknown';
+      }
+    }
+
+    for (final d in dets) {
+      final name = mapName(d.className ?? '');
+      if (name == 'unknown') continue;
+      final conf = (d.score ?? 0.0).clamp(0.0, 1.0);
+      if (conf > (scores[name] ?? 0.0)) {
+        scores[name] = conf;
+      }
+    }
+
+    // Debug print sorted by confidence
+    final sorted = scores.entries.toList()
+      ..sort((a,b) => b.value.compareTo(a.value));
+    print('[ModelService][identifier] scores: ' +
+        sorted.map((e) => '${e.key}=${(e.value*100).toStringAsFixed(1)}%').join(', '));
+    return scores;
+  }
+
+  // Simple front-check style: take top-1 prediction and compare to selected
+  Future<IdentDecision> identifySelected(File image, String selected) async {
+    await _ensureIdentifierLoaded();
+
+    final bytes = await image.readAsBytes();
+    final dets = await _identifierModel.getImagePrediction(
+      bytes,
+      minimumScore: 0.05,
+      iOUThreshold: 0.45,
+    ) as List<ResultObjectDetection>;
+
+    if (dets.isEmpty) {
+      print('[ModelService][identifier] no detections');
+      return const IdentDecision(bestName: 'unknown', bestConfidence: 0.0, matchesSelected: false);
+    }
+
+    ResultObjectDetection best = dets.first;
+    for (final d in dets) {
+      if ((d.score ?? 0.0) > (best.score ?? 0.0)) best = d;
+    }
+    final rawName = (best.className ?? '').trim();
+    final bestName = rawName.isEmpty ? 'unknown' : rawName;
+    final conf = (best.score ?? 0.0).clamp(0.0, 1.0);
+
+    final bestNorm = bestName.toLowerCase();
+    final selectedNorm = selected.toLowerCase();
+
+    print('[ModelService][identifier] top1=$bestName conf=${(conf*100).toStringAsFixed(1)}% (selected=$selected, thr=${(identifierConfidenceThreshold*100).toStringAsFixed(0)}%)');
+
+    final matches = (bestNorm == selectedNorm) && (conf >= identifierConfidenceThreshold);
+    return IdentDecision(bestName: bestName, bestConfidence: conf, matchesSelected: matches);
   }
 
   // ---- Scoring for a single image (YOLOv8) ----

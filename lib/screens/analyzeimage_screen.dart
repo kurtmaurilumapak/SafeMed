@@ -32,6 +32,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
   Timer? _progressTicker;   // drives the progress bar while work runs
   bool _running = false;    // prevents double-starts
   AnalysisResult? _analysisResult;
+  String _idLocation = '';
 
   @override
   void initState() {
@@ -67,6 +68,11 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
     setState(() { _progress = v.clamp(0.0, 1.0); });
   }
 
+  String _capitalize(String s) {
+    if (s.isEmpty) return s;
+    return s[0].toUpperCase() + s.substring(1);
+  }
+
   Future<void> _runAnalysis() async {
     if (_running) return;
     if (widget.selectedMedicine == null || widget.frontImage == null || widget.backImage == null) {
@@ -80,31 +86,54 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
     _running = true;
 
     try {
-      // STEP 1: Load/preload model
-      setState(() { _currentStep = 'Loading model…'; });
+      // STEP 1: Identify medicine type (front + back) with tolerance
+      setState(() { _currentStep = 'Identifying medicine type [FRONT IMAGE]…'; });
+      _startProgressTicker(0.10);
+      await ModelService().preloadIdentifier();
+
+      final selected = widget.selectedMedicine!;
+
+      // Identify only the FRONT image first using top-1 decision like Roboflow preview
+      _idLocation = 'FRONT';
+      final frontDecision = await ModelService().identifySelected(widget.frontImage!, selected);
+      if (!frontDecision.matchesSelected) {
+        throw MedicineMismatchException(frontDecision.bestName, selected);
+      }
+
+      // Additionally verify the BACK image with the identifier before heavy analysis
+      setState(() { _currentStep = 'Identifying medicine type [BACK IMAGE]…'; });
       _startProgressTicker(0.15);
+      _idLocation = 'BACK';
+      final backDecision = await ModelService().identifySelected(widget.backImage!, selected);
+      if (!backDecision.matchesSelected) {
+        throw MedicineMismatchException(backDecision.bestName, selected);
+      }
+
+      // STEP 2: Load/preload model
+      setState(() { _currentStep = 'Loading model…'; });
+      _startProgressTicker(0.25);
       // If you didn't preload on VerifyScreen, this ensures the model is ready:
       await ModelService().preload(widget.selectedMedicine!);
 
-      // STEP 2: Detect on FRONT
+      // STEP 3: Detect on FRONT
       setState(() { _currentStep = 'Detecting on FRONT image…'; });
-      _startProgressTicker(0.55);
+      _startProgressTicker(0.65);
       final front = await ModelService().scoreOne(
         medicine: widget.selectedMedicine!,
         image: widget.frontImage!,
         tag: 'front',
       );
 
-      // STEP 3: Detect on BACK
+      // STEP 4: Detect on BACK
       setState(() { _currentStep = 'Detecting on BACK image…'; });
-      _startProgressTicker(0.85);
+      _startProgressTicker(0.92);
       final back = await ModelService().scoreOne(
         medicine: widget.selectedMedicine!,
         image: widget.backImage!,
         tag: 'back',
       );
 
-      // STEP 4: Compute averages & decision
+      // STEP 5: Compute averages & decision
       setState(() { _currentStep = 'Computing averages & decision…'; });
       _startProgressTicker(0.95);
 
@@ -157,6 +186,35 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
           content: Text(
             'Multiple medicine packs detected in the ${e.location} image.\n\n'
                 'Please retake clear photos showing only a single pack and try again.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text(
+                'OK',
+                style: TextStyle(color: Color(0xFF4285F4), fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (mounted) Navigator.pop(context); // Back to Upload screen
+    } on MedicineMismatchException catch (e) {
+      if (!mounted) return;
+
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text(
+            'Medicine Mismatch Detected',
+            style: TextStyle(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          content: Text(
+            'The system detected ${_capitalize(e.detectedMedicine)} in the ${_idLocation.isEmpty ? 'image' : _idLocation.toLowerCase()} image, but you selected ${e.selectedMedicine}.\n\n'
+                'Please ensure you are analyzing the correct medicine and try again.',
           ),
           actions: [
             TextButton(

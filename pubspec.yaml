@@ -59,9 +59,13 @@ flutter:
   assets:
     - assets/
     - "assets/labels/labels.txt"
+    - "assets/labels/identifier.txt"
     - "assets/models/biogesic.torchscript"
     - "assets/models/neozep.torchscript"
     - "assets/models/bioflu.torchscript"
+    - "assets/models/alaxan.torchscript"
+    - "assets/models/medicol.torchscript"
+    - "assets/models/identifier.torchscript"
 
   # To add assets to your application, add an assets section, like this:
   # assets:
