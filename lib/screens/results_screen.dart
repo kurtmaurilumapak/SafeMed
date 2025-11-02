@@ -329,30 +329,55 @@ class _ResultsScreenState extends State<ResultsScreen>
       ),
       child: Row(
         children: [
-          // Medicine Image or Icon
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: const Color(0xFF4285F4).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child:
-                widget.frontImage != null
+          // Front and Back Images - Small size side by side
+          Row(
+            children: [
+              // Front Image
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4285F4).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: widget.frontImage != null
                     ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        widget.frontImage!,
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.cover,
-                      ),
-                    )
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          widget.frontImage!,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                        ),
+                      )
                     : const Icon(
-                      Icons.medication,
-                      color: Color(0xFF4285F4),
-                      size: 30,
+                        Icons.medication,
+                        color: Color(0xFF4285F4),
+                        size: 30,
+                      ),
+              ),
+              // Back Image (if available)
+              if (widget.backImage != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4285F4).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      widget.backImage!,
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
                     ),
+                  ),
+                ),
+              ],
+            ],
           ),
 
           const SizedBox(width: 16),
@@ -372,7 +397,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Scanned: ${DateTime.now().toString().split(' ')[0]}',
+                  'Scanned: ${_formatDateTime(DateTime.now())}',
                   style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
               ],
@@ -381,6 +406,25 @@ class _ResultsScreenState extends State<ResultsScreen>
         ],
       ),
     );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final month = dateTime.month.toString().padLeft(2, '0');
+    final day = dateTime.day.toString().padLeft(2, '0');
+    final year = dateTime.year;
+    
+    // Format time in 12-hour format
+    int hour = dateTime.hour;
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final period = hour >= 12 ? 'pm' : 'am';
+    
+    if (hour == 0) {
+      hour = 12;
+    } else if (hour > 12) {
+      hour -= 12;
+    }
+    
+    return '$year-$month-$day $hour:$minute$period';
   }
 
   Widget _buildWarningSection() {
@@ -656,9 +700,9 @@ class _ResultsScreenState extends State<ResultsScreen>
       case 'authentic':
         return 'Save Result';
       case 'counterfeit':
-        return 'Report Counterfeit';
+        return 'Save Result';
       default:
-        return 'Get Help';
+        return 'Save Result';
     }
   }
 
@@ -668,10 +712,10 @@ class _ResultsScreenState extends State<ResultsScreen>
         _showSaveDialog();
         break;
       case 'counterfeit':
-        _showReportDialog();
+        _showSaveDialog();
         break;
       default:
-        _showHelpDialog();
+        _showSaveDialog();
     }
   }
 
