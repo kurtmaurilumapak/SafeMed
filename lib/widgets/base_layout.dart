@@ -9,6 +9,7 @@ class BaseLayout extends StatefulWidget {
   final int currentNavIndex;
   final Color? backgroundColor;
   final EdgeInsetsGeometry? padding;
+  final VoidCallback? onBackPressed;
 
   const BaseLayout({
     super.key,
@@ -20,6 +21,7 @@ class BaseLayout extends StatefulWidget {
     this.currentNavIndex = 0,
     this.backgroundColor,
     this.padding,
+    this.onBackPressed,
   });
 
   @override
@@ -99,7 +101,7 @@ class _BaseLayoutState extends State<BaseLayout> with TickerProviderStateMixin {
                     color: Color(0xFF4285F4),
                     size: 20,
                   ),
-                  onPressed: () {
+                  onPressed: widget.onBackPressed ?? () {
                     Navigator.pop(context);
                   },
                 ),

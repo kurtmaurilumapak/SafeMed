@@ -47,6 +47,13 @@ class _VerifyScreenState extends State<VerifyScreen> {
       currentNavIndex: 1, // Set to Verify tab
       title: 'Upload Drug Images',
       showBackButton: true, // Show back button instead of logo
+      onBackPressed: () {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/home',
+          (route) => false,
+        );
+      },
       padding: const EdgeInsets.all(24),
       body: Column(
         children: [

@@ -46,6 +46,11 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    dependencies {
+        // Needed for Flutter PlayStore deferred components references during R8
+        add("implementation", "com.google.android.play:core:1.10.3")
+    }
 }
 
 flutter {
