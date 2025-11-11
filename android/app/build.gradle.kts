@@ -7,8 +7,8 @@ plugins {
 
 android {
     namespace = "com.example.safemed"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    compileSdk = 36
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -24,18 +24,32 @@ android {
         applicationId = "com.example.safemed"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+        getByName("release") {
+            // Enable code & resource shrinking for smaller APK/AAB
+            isShrinkResources = true
+            isMinifyEnabled = true
+
+            // Use default optimized ProGuard rules + project rules
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                file("proguard-rules.pro")
+            )
+
+            // Signing config stays the same:
             signingConfig = signingConfigs.getByName("debug")
         }
+    }
+
+    dependencies {
+        // Needed for Flutter PlayStore deferred components references during R8
+        add("implementation", "com.google.android.play:core:1.10.3")
     }
 }
 
