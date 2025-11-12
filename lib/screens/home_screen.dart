@@ -165,12 +165,7 @@ class HomeScreen extends StatelessWidget {
                       height: 48,
                       child: ElevatedButton.icon(
                         onPressed: () async {
-                          // Replace with your actual app download link
-                          // Examples:
-                          // - Google Play: https://play.google.com/store/apps/details?id=your.package.name
-                          // - App Store: https://apps.apple.com/app/id123456789
-                          // - Direct APK: https://your-domain.com/app-release.apk
-                          final Uri url = Uri.parse('https://your-app-download-link.com');
+                          final Uri url = Uri.parse('https://transfer.it/t/EvFj30oxRRTK');
                           try {
                             await launchUrl(url, mode: LaunchMode.externalApplication);
                           } catch (e) {
