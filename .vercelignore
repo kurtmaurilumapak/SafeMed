@@ -1,0 +1,15 @@
+# Ignore files that don't need to be deployed
+android/
+ios/
+linux/
+macos/
+windows/
+build/
+.dart_tool/
+.packages
+.pub/
+pubspec.lock
+*.iml
+.DS_Store
+Thumbs.db
+
