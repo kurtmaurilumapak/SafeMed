@@ -107,39 +107,18 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     opacity: _fadeAnimation,
                     child: Column(
                       children: [
-                        // Logo Container with shadow
-                        Container(
+                        // Logo
+                        Image.asset(
+                          'assets/medlogo1.png',
                           height: 120,
                           width: 120,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.2),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 20,
-                                spreadRadius: 5,
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Image.asset(
-                              'assets/medlogo1.png',
-                              height: 70,
-                              width: 70,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Icon(
-                                  Icons.medical_services_rounded,
-                                  size: 70,
-                                  color: Colors.white.withOpacity(0.9),
-                                );
-                              },
-                            ),
-                          ),
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.medical_services_rounded,
+                              size: 120,
+                              color: Colors.white.withOpacity(0.9),
+                            );
+                          },
                         ),
                         const SizedBox(height: 24),
 
@@ -199,7 +178,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'Verifying Medicine Database...',
+                        'Loading Medicine Models...',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.9),
@@ -209,7 +188,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Please wait while we ensure everything is secure',
+                        'Please wait while we ensure everything is ready',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.7),
