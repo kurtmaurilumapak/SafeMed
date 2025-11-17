@@ -162,59 +162,26 @@ class _BaseLayoutState extends State<BaseLayout> with TickerProviderStateMixin {
                       begin: const Offset(-0.3, 0),
                       end: Offset.zero,
                     ).animate(_animation),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Hero(
-                          tag: 'app_logo',
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [Color(0xFF4285F4), Color(0xFF34A853)],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF4285F4).withOpacity(0.3),
-                                  blurRadius: 8,
-                                  spreadRadius: 0,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.medical_services_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
+                        Text(
+                          widget.title ?? 'SafeMed',
+                          style: const TextStyle(
+                            color: Color(0xFF1A1A1A),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.title ?? 'SafeMed',
-                              style: const TextStyle(
-                                color: Color(0xFF1A1A1A),
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            Text(
-                              'Your Health Guardian',
-                              style: TextStyle(
-                                color: const Color(0xFF1A1A1A).withOpacity(0.6),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'Your Health Guardian',
+                          style: TextStyle(
+                            color: const Color(0xFF1A1A1A).withOpacity(0.6),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.2,
+                          ),
                         ),
                       ],
                     ),

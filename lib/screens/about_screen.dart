@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:safemed/widgets/base_layout.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -62,9 +63,10 @@ class _AboutScreenState extends State<AboutScreen> {
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF4285F4), Color(0xFF34A853)],
+          colors: [Color(0xFF4285F4), Color(0xFF3367D6), Color(0xFF2E5BFF)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: [0.0, 0.6, 1.0],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
@@ -81,26 +83,33 @@ class _AboutScreenState extends State<AboutScreen> {
           // App Logo
           Hero(
             tag: 'about_logo',
-            child: Container(
-              width: 80,
+            child: Image.asset(
+              'assets/medlogo1.png',
               height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 4),
+              width: 80,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: const Icon(
-                Icons.medical_services_rounded,
-                color: Color(0xFF4285F4),
-                size: 40,
-              ),
+                  child: const Icon(
+                    Icons.medical_services_rounded,
+                    color: Color(0xFF4285F4),
+                    size: 40,
+                  ),
+                );
+              },
             ),
           ),
 
@@ -184,24 +193,31 @@ class _AboutScreenState extends State<AboutScreen> {
   Widget _buildMissionPoint(String emoji, String text) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(12),
+        height: 110,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         decoration: BoxDecoration(
           color: const Color(0xFF4285F4).withOpacity(0.05),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: const Color(0xFF4285F4).withOpacity(0.1)),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(emoji, style: const TextStyle(fontSize: 24)),
-            const SizedBox(height: 8),
-            Text(
-              text,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF4285F4),
+            const SizedBox(height: 6),
+            Flexible(
+              child: Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF4285F4),
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -238,20 +254,11 @@ class _AboutScreenState extends State<AboutScreen> {
       title: 'Key Features',
       icon: Icons.star_rounded,
       iconColor: const Color(0xFF34A853),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 0.7, // Changed from 0.85 to 0.7 for more height
-        ),
-        itemCount: features.length,
-        itemBuilder: (context, index) {
-          final feature = features[index];
+      child: Column(
+        children: features.map((feature) {
           return Container(
-            padding: const EdgeInsets.all(16), // Reduced from 20 to 16
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -264,12 +271,11 @@ class _AboutScreenState extends State<AboutScreen> {
                 ),
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
                     color: (feature['color'] as Color).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -277,37 +283,38 @@ class _AboutScreenState extends State<AboutScreen> {
                   child: Icon(
                     feature['icon'] as IconData,
                     color: feature['color'] as Color,
-                    size: 24,
+                    size: 28,
                   ),
                 ),
-                const SizedBox(height: 12), // Reduced from 16 to 12
-                Text(
-                  feature['title'] as String,
-                  style: const TextStyle(
-                    fontSize: 15, // Reduced from 16 to 15
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 6), // Reduced from 8 to 6
+                const SizedBox(width: 20),
                 Expanded(
-                  // Added Expanded to prevent overflow
-                  child: Text(
-                    feature['description'] as String,
-                    style: TextStyle(
-                      fontSize: 12, // Reduced from 13 to 12
-                      color: Colors.grey.shade600,
-                      height: 1.3, // Reduced line height from 1.4 to 1.3
-                    ),
-                    maxLines: 3, // Added max lines to prevent overflow
-                    overflow:
-                        TextOverflow.ellipsis, // Added ellipsis for long text
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        feature['title'] as String,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        feature['description'] as String,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           );
-        },
+        }).toList(),
       ),
     );
   }
@@ -544,42 +551,38 @@ class _AboutScreenState extends State<AboutScreen> {
       ),
       child: Column(
         children: [
-          Text(
-            'SafeMed v1.0.0',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade700,
-            ),
-          ),
+          _buildFDALink(),
           const SizedBox(height: 8),
           Text(
-            '© 2024 SafeMed Team. All rights reserved.',
+            '© 2025 SafeMed Team. All rights reserved.',
             style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildLegalLink('Privacy Policy'),
-              const SizedBox(width: 16),
-              Text('•', style: TextStyle(color: Colors.grey.shade400)),
-              const SizedBox(width: 16),
-              _buildLegalLink('Terms of Service'),
-            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLegalLink(String text) {
+  Widget _buildFDALink() {
     return InkWell(
-      onTap: () => _showLegalDialog(text),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 13,
+      onTap: () async {
+        final Uri url = Uri.parse('https://www.fda.gov.ph/advisories/');
+        try {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Could not open FDA Advisories link'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      },
+      child: const Text(
+        'FDA Advisories',
+        style: TextStyle(
+          fontSize: 16,
           fontWeight: FontWeight.w500,
           color: Color(0xFF4285F4),
           decoration: TextDecoration.underline,
@@ -655,21 +658,4 @@ class _AboutScreenState extends State<AboutScreen> {
     );
   }
 
-  void _showLegalDialog(String title) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text('$title content would be displayed here.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }
