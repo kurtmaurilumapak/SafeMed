@@ -71,7 +71,7 @@ class _UploadScreenState extends State<UploadScreen> {
 
             // Front Side Section
             const Text(
-              'Front Side',
+              'Image 1',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -84,7 +84,7 @@ class _UploadScreenState extends State<UploadScreen> {
             _buildUploadArea(
               'front',
               frontImageFile,
-              'Tap to upload front image',
+              'Tap to upload image 1',
                   () => _handleImageUpload('front'),
             ),
 
@@ -92,7 +92,7 @@ class _UploadScreenState extends State<UploadScreen> {
 
             // Back Side Section
             const Text(
-              'Back Side',
+              'Image 2',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -105,7 +105,7 @@ class _UploadScreenState extends State<UploadScreen> {
             _buildUploadArea(
               'back',
               backImageFile,
-              'Tap to upload back image',
+              'Tap to upload image 2',
                   () => _handleImageUpload('back'),
             ),
 
@@ -219,7 +219,7 @@ class _UploadScreenState extends State<UploadScreen> {
                 
                 // Description
                 const Text(
-                  'Please upload clear images of the front and back of the drug packaging for accurate detection.',
+                  'Please upload clear images of both sides of the drug packaging for accurate detection. You can decide which side goes to Image 1 or Image 2 — just make sure both front and back are captured and uploaded.',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.black87,
@@ -487,7 +487,7 @@ class _UploadScreenState extends State<UploadScreen> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.9),
+                    color: Colors.grey.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(
