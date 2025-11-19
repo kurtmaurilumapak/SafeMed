@@ -218,14 +218,17 @@ class _UploadScreenState extends State<UploadScreen> {
                 const SizedBox(height: 16),
                 
                 // Description
-                const Text(
-                  'Please upload clear images of both sides of the drug packaging for accurate detection. You can decide which side goes to Image 1 or Image 2 — just make sure both front and back are captured and uploaded.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                    height: 1.4,
-                  ),
-                  textAlign: TextAlign.center,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildBulletPoint(
+                      'Upload clear images of both sides of the drug packaging for accurate detection.',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildBulletPoint(
+                      'You can choose which side goes to Image 1 or Image 2, but make sure both the front and back are uploaded.',
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 
@@ -521,7 +524,7 @@ class _UploadScreenState extends State<UploadScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '${side.capitalize()} uploaded',
+                      side == 'front' ? 'Image 1 uploaded' : 'Image 2 uploaded',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -565,6 +568,31 @@ class _UploadScreenState extends State<UploadScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBulletPoint(String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '• ',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.black87,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
