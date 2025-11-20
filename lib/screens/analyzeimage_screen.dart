@@ -86,7 +86,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
 
     try {
       // STEP 1: Identify medicine type (front + back) with tolerance
-      setState(() { _currentStep = 'Identifying medicine type [FRONT IMAGE]…'; });
+      setState(() { _currentStep = 'Identifying medicine type on IMAGE 1…'; });
       _startProgressTicker(0.20);
       await ModelService().preloadIdentifier();
 
@@ -100,7 +100,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
       }
 
       // Additionally verify the BACK image with the identifier before heavy analysis
-      setState(() { _currentStep = 'Identifying medicine type [BACK IMAGE]…'; });
+      setState(() { _currentStep = 'Identifying medicine type on IMAGE 2…'; });
       _startProgressTicker(0.40);
       _idLocation = 'BACK';
       final backDecision = await ModelService().identifySelected(widget.backImage!, selected);
@@ -115,7 +115,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
       await ModelService().preload(widget.selectedMedicine!);
 
       // STEP 3: Detect on FRONT
-      setState(() { _currentStep = 'Detecting on FRONT image…'; });
+      setState(() { _currentStep = 'Detecting on IMAGE 1…'; });
       _startProgressTicker(0.70);
       final front = await ModelService().scoreOne(
         medicine: widget.selectedMedicine!,
@@ -124,7 +124,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
       );
 
       // STEP 4: Detect on BACK
-      setState(() { _currentStep = 'Detecting on BACK image…'; });
+      setState(() { _currentStep = 'Detecting on IMAGE 2…'; });
       _startProgressTicker(0.90);
       final back = await ModelService().scoreOne(
         medicine: widget.selectedMedicine!,
