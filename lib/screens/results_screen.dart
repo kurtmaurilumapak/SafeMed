@@ -560,61 +560,84 @@ class _ResultsScreenState extends State<ResultsScreen>
       context: context,
       builder: (context) {
         return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: FutureBuilder<_DialogImages>(
-              future: _dialogImagesFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return SizedBox(
-                    height: 260,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.grey.shade600,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                final data = snapshot.data ?? const _DialogImages();
-
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Captured Images',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
+          insetPadding: EdgeInsets.zero,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+          ),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: FutureBuilder<_DialogImages>(
+                future: _dialogImagesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return SizedBox(
+                      height: 260,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.grey.shade600,
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    );
+                  }
+
+                  final data = snapshot.data ?? const _DialogImages();
+
+                  return ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.8,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Captured Images',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Flexible(
+                          child: Scrollbar(
+                            thumbVisibility: true,
+                            radius: const Radius.circular(8),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _DialogImagePreview(
+                                    label: 'Image 1',
+                                    data: data.first,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  _DialogImagePreview(
+                                    label: 'Image 2',
+                                    data: data.second,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    _DialogImagePreview(
-                      label: 'Image 1',
-                      data: data.first,
-                    ),
-                    const SizedBox(height: 24),
-                    _DialogImagePreview(
-                      label: 'Image 2',
-                      data: data.second,
-                    ),
-                  ],
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
         );
@@ -1239,8 +1262,8 @@ class _DialogImagePreview extends StatelessWidget {
               child: Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                   color: Colors.black87,
                 ),
               ),
@@ -1253,28 +1276,36 @@ class _DialogImagePreview extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         ClipRRect(
-          child: AspectRatio(
-            aspectRatio: 3 / 2,
-            child: data == null
-                ? Container(color: Colors.grey.shade200, child: const _DialogImagePlaceholder())
-                : Stack(
-                    fit: StackFit.expand,
-                    clipBehavior: Clip.none,
-                    children: [
-                      Image.file(
-                        data!.image,
-                        fit: BoxFit.cover,
-                      ),
-                      if (data!.detections.isNotEmpty)
+          child: SizedBox(
+            width: double.infinity,
+            child: AspectRatio(
+              aspectRatio: data?.aspectRatio ?? (4 / 3),
+              child: data == null
+                  ? Container(
+                      color: Colors.grey.shade200,
+                      child: const _DialogImagePlaceholder(),
+                    )
+                  : Stack(
+                      fit: StackFit.expand,
+                      clipBehavior: Clip.none,
+                      children: [
                         Positioned.fill(
-                          child: _DetectionOverlay(
-                            detections: data!.detections,
+                          child: Image.file(
+                            data!.image,
+                            fit: BoxFit.cover,
                           ),
                         ),
-                    ],
-                  ),
+                        if (data!.detections.isNotEmpty)
+                          Positioned.fill(
+                            child: _DetectionOverlay(
+                              detections: data!.detections,
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
           ),
         ),
       ],
@@ -1364,7 +1395,7 @@ class _DetectionLabelChip extends StatelessWidget {
     final text =
         '${_formatDetectionLabel(detection.label)} ${(detection.confidence * 100).round()}%';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.95),
         borderRadius: BorderRadius.zero,
@@ -1380,7 +1411,7 @@ class _DetectionLabelChip extends StatelessWidget {
         text,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
       ),
