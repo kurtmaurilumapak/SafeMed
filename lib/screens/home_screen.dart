@@ -174,7 +174,7 @@ class HomeScreen extends StatelessWidget {
                       height: 48,
                       child: ElevatedButton.icon(
                         onPressed: () async {
-                          final Uri url = Uri.parse('https://transfer.it/t/kxN4cQsBCTDJ');
+                          final Uri url = Uri.parse('https://drive.google.com/file/d/1cdUtZHM6vZQvUbuOV4_Y_w8sEcmCZgZZ/view?usp=sharing');
                           try {
                             await launchUrl(url, mode: LaunchMode.externalApplication);
                           } catch (e) {
