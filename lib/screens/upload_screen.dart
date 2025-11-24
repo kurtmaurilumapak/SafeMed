@@ -26,8 +26,8 @@ class UploadScreen extends StatefulWidget {
 }
 
 class _UploadScreenState extends State<UploadScreen> {
-  File? frontImageFile;
-  File? backImageFile;
+  File? firstImageFile;
+  File? secondImageFile;
   final ImagePicker _picker = ImagePicker();
   bool _dontShowAgain = false;
 
@@ -69,7 +69,7 @@ class _UploadScreenState extends State<UploadScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // Front Side Section
+            // Image 1 Section
             const Text(
               'Image 1',
               style: TextStyle(
@@ -80,17 +80,17 @@ class _UploadScreenState extends State<UploadScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Front Side Upload Area
+            // Image 1 Upload Area
             _buildUploadArea(
-              'front',
-              frontImageFile,
+              'first',
+              firstImageFile,
               'Tap to upload image 1',
-                  () => _handleImageUpload('front'),
+                  () => _handleImageUpload('first'),
             ),
 
             const SizedBox(height: 32),
 
-            // Back Side Section
+            // Image 2 Section
             const Text(
               'Image 2',
               style: TextStyle(
@@ -101,12 +101,12 @@ class _UploadScreenState extends State<UploadScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Back Side Upload Area
+            // Image 2 Upload Area
             _buildUploadArea(
-              'back',
-              backImageFile,
+              'second',
+              secondImageFile,
               'Tap to upload image 2',
-                  () => _handleImageUpload('back'),
+                  () => _handleImageUpload('second'),
             ),
 
             const SizedBox(height: 40),
@@ -205,7 +205,7 @@ class _UploadScreenState extends State<UploadScreen> {
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
-                        'Upload Both Sides',
+                        'Upload Image 1 & Image 2',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -222,11 +222,11 @@ class _UploadScreenState extends State<UploadScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildBulletPoint(
-                      'Upload clear images of both sides of the drug packaging for accurate detection.',
+                      'Upload clear captures for both Image 1 and Image 2 for accurate detection.',
                     ),
                     const SizedBox(height: 8),
                     _buildBulletPoint(
-                      'You can choose which side goes to Image 1 or Image 2, but make sure both the front and back are uploaded.',
+                      'You can choose which photo goes to Image 1 or Image 2, but make sure both front and back side images are uploaded.',
                     ),
                   ],
                 ),
@@ -235,7 +235,7 @@ class _UploadScreenState extends State<UploadScreen> {
                 // Example images
                 Row(
                   children: [
-                    // Front example
+                    // Image 1 example
                     Expanded(
                       child: Column(
                         children: [
@@ -277,7 +277,7 @@ class _UploadScreenState extends State<UploadScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    // Back example
+                    // Image 2 example
                     Expanded(
                       child: Column(
                         children: [
@@ -524,7 +524,7 @@ class _UploadScreenState extends State<UploadScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      side == 'front' ? 'Image 1 uploaded' : 'Image 2 uploaded',
+                      side == 'first' ? 'Image 1 uploaded' : 'Image 2 uploaded',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -596,6 +596,8 @@ class _UploadScreenState extends State<UploadScreen> {
     );
   }
 
+  String _imageLabel(String side) => side == 'first' ? 'Image 1' : 'Image 2';
+
   void _handleImageUpload(String side) {
     // Show options to choose camera or gallery
     showModalBottomSheet(
@@ -622,7 +624,7 @@ class _UploadScreenState extends State<UploadScreen> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Upload ${side.capitalize()} Side Image',
+                  side == 'first' ? 'Upload Image 1' : 'Upload Image 2',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -671,17 +673,18 @@ class _UploadScreenState extends State<UploadScreen> {
 
       if (image != null) {
         setState(() {
-          if (side == 'front') {
-            frontImageFile = File(image.path);
+          if (side == 'first') {
+            firstImageFile = File(image.path);
           } else {
-            backImageFile = File(image.path);
+            secondImageFile = File(image.path);
           }
         });
 
         if (mounted) {
+          final label = _imageLabel(side);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${side.capitalize()} side photo captured!'),
+              content: Text('$label photo captured!'),
               backgroundColor: const Color(0xFF4285F4),
               duration: const Duration(seconds: 2),
             ),
@@ -712,19 +715,18 @@ class _UploadScreenState extends State<UploadScreen> {
 
       if (image != null) {
         setState(() {
-          if (side == 'front') {
-            frontImageFile = File(image.path);
+          if (side == 'first') {
+            firstImageFile = File(image.path);
           } else {
-            backImageFile = File(image.path);
+            secondImageFile = File(image.path);
           }
         });
 
         if (mounted) {
+          final label = _imageLabel(side);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                '${side.capitalize()} side image selected from gallery!',
-              ),
+              content: Text('$label selected from gallery!'),
               backgroundColor: const Color(0xFF4285F4),
               duration: const Duration(seconds: 2),
             ),
@@ -746,16 +748,17 @@ class _UploadScreenState extends State<UploadScreen> {
 
   void _removeImage(String side) {
     setState(() {
-      if (side == 'front') {
-        frontImageFile = null;
+      if (side == 'first') {
+        firstImageFile = null;
       } else {
-        backImageFile = null;
+        secondImageFile = null;
       }
     });
 
+    final label = _imageLabel(side);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${side.capitalize()} side image removed'),
+        content: Text('$label removed'),
         backgroundColor: Colors.orange,
         duration: const Duration(seconds: 1),
       ),
@@ -763,7 +766,7 @@ class _UploadScreenState extends State<UploadScreen> {
   }
 
   bool _canProceed() {
-    return frontImageFile != null && backImageFile != null;
+    return firstImageFile != null && secondImageFile != null;
   }
 
   void _handleUploadAndDetect() {
@@ -775,18 +778,11 @@ class _UploadScreenState extends State<UploadScreen> {
       MaterialPageRoute(
         builder:
             (context) => AnalyzeImageScreen(
-          frontImage: frontImageFile,
-          backImage: backImageFile,
+          firstImage: firstImageFile,
+          secondImage: secondImageFile,
           selectedMedicine: widget.selectedMedicine,
         ),
       ),
     );
-  }
-}
-
-extension StringCapitalization on String {
-  String capitalize() {
-    if (isEmpty) return this;
-    return '${this[0].toUpperCase()}${substring(1)}';
   }
 }

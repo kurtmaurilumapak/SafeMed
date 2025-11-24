@@ -5,14 +5,14 @@ import '../services/pytorch_lite_service.dart';
 import 'dart:async'; // for Timer
 
 class AnalyzeImageScreen extends StatefulWidget {
-  final File? frontImage;
-  final File? backImage;
+  final File? firstImage;
+  final File? secondImage;
   final String? selectedMedicine;
 
   const AnalyzeImageScreen({
     super.key,
-    this.frontImage,
-    this.backImage,
+    this.firstImage,
+    this.secondImage,
     this.selectedMedicine,
   });
 
@@ -74,7 +74,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
 
   Future<void> _runAnalysis() async {
     if (_running) return;
-    if (widget.selectedMedicine == null || widget.frontImage == null || widget.backImage == null) {
+    if (widget.selectedMedicine == null || widget.firstImage == null || widget.secondImage == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Missing medicine or images')),
@@ -85,27 +85,27 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
     _running = true;
 
     try {
-      // STEP 1: Identify medicine type (front + back) with tolerance
+      // STEP 1: Identify medicine type (first + second) with tolerance
       setState(() { _currentStep = 'Identifying medicine type on IMAGE 1…'; });
       _startProgressTicker(0.20);
       await ModelService().preloadIdentifier();
 
       final selected = widget.selectedMedicine!;
 
-      // Identify only the FRONT image first using top-1 decision like Roboflow preview
-      _idLocation = 'FRONT';
-      final frontDecision = await ModelService().identifySelected(widget.frontImage!, selected);
-      if (!frontDecision.matchesSelected) {
-        throw MedicineMismatchException(frontDecision.bestName, selected);
+      // Identify only Image 1 first using top-1 decision like Roboflow preview
+      _idLocation = 'FIRST';
+      final firstDecision = await ModelService().identifySelected(widget.firstImage!, selected);
+      if (!firstDecision.matchesSelected) {
+        throw MedicineMismatchException(firstDecision.bestName, selected);
       }
 
-      // Additionally verify the BACK image with the identifier before heavy analysis
+      // Additionally verify Image 2 with the identifier before heavy analysis
       setState(() { _currentStep = 'Identifying medicine type on IMAGE 2…'; });
       _startProgressTicker(0.40);
-      _idLocation = 'BACK';
-      final backDecision = await ModelService().identifySelected(widget.backImage!, selected);
-      if (!backDecision.matchesSelected) {
-        throw MedicineMismatchException(backDecision.bestName, selected);
+      _idLocation = 'SECOND';
+      final secondDecision = await ModelService().identifySelected(widget.secondImage!, selected);
+      if (!secondDecision.matchesSelected) {
+        throw MedicineMismatchException(secondDecision.bestName, selected);
       }
 
       // STEP 2: Load/preload model
@@ -114,22 +114,22 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
       // If you didn't preload on VerifyScreen, this ensures the model is ready:
       await ModelService().preload(widget.selectedMedicine!);
 
-      // STEP 3: Detect on FRONT
+      // STEP 3: Detect on Image 1
       setState(() { _currentStep = 'Detecting on IMAGE 1…'; });
       _startProgressTicker(0.70);
-      final front = await ModelService().scoreOne(
+      final firstResult = await ModelService().scoreOne(
         medicine: widget.selectedMedicine!,
-        image: widget.frontImage!,
-        tag: 'front',
+        image: widget.firstImage!,
+        tag: 'first',
       );
 
-      // STEP 4: Detect on BACK
+      // STEP 4: Detect on Image 2
       setState(() { _currentStep = 'Detecting on IMAGE 2…'; });
       _startProgressTicker(0.90);
-      final back = await ModelService().scoreOne(
+      final secondResult = await ModelService().scoreOne(
         medicine: widget.selectedMedicine!,
-        image: widget.backImage!,
-        tag: 'back',
+        image: widget.secondImage!,
+        tag: 'second',
       );
 
       // STEP 5: Compute averages & decision
@@ -137,8 +137,8 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
       _startProgressTicker(0.95);
 
       // Averages using the raw-sum capped evidence (as in your service)
-      final avgAuth = ((front.authScore + back.authScore) / 2.0).clamp(0.0, 1.0);
-      final avgFake = ((front.fakeScore + back.fakeScore) / 2.0).clamp(0.0, 1.0);
+      final avgAuth = ((firstResult.authScore + secondResult.authScore) / 2.0).clamp(0.0, 1.0);
+      final avgFake = ((firstResult.fakeScore + secondResult.fakeScore) / 2.0).clamp(0.0, 1.0);
 
       String label;
       if (avgAuth >= ModelService.decisionThreshold) {
@@ -153,9 +153,11 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
       final res = AnalysisResult(
         avgAuthenticScore: avgAuth,
         avgCounterfeitScore: avgFake,
-        frontAuthenticScore: front.authScore,
-        backAuthenticScore:  back.authScore,
+        firstAuthenticScore: firstResult.authScore,
+        secondAuthenticScore:  secondResult.authScore,
         finalLabel: label,
+        firstDetections: firstResult.detections,
+        secondDetections: secondResult.detections,
       );
 
       // Finish up UI
@@ -183,7 +185,7 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
             textAlign: TextAlign.center,
           ),
           content: Text(
-            'Multiple medicine packs detected in the ${e.location} image.\n\n'
+            'Multiple medicine packs detected in ${e.location}.\n\n'
                 'Please retake clear photos showing only a single pack and try again.',
           ),
           actions: [
@@ -520,12 +522,14 @@ class _AnalyzeImageScreenState extends State<AnalyzeImageScreen>
       MaterialPageRoute(
         builder: (_) => ResultsScreen(
           selectedMedicine: widget.selectedMedicine,
-          frontImage: widget.frontImage,
-          backImage: widget.backImage,
+          firstImage: widget.firstImage,
+          secondImage: widget.secondImage,
           result: res.finalLabel,
           confidenceScore: displayScore,
-          // frontScore: res.frontAuthenticScore,
-          // backScore:  res.backAuthenticScore,
+          firstDetections: res.firstDetections,
+          secondDetections: res.secondDetections,
+          // firstScore: res.firstAuthenticScore,
+          // secondScore:  res.secondAuthenticScore,
         ),
       ),
     );
