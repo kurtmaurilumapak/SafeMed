@@ -222,37 +222,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
     );
   }
 
-  Widget _buildSafetyTip(IconData icon, String text, Color color) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: color, size: 18),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.black87,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Future<void> _showPreUploadReminder(BuildContext context) async {
     bool isLoading = false;
 

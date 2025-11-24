@@ -21,14 +21,73 @@ class MedicineModelConfig {
 class PerImageScores {
   final double authSum;   // raw sum of confidences for 'authentic'
   final double fakeSum;   // raw sum of confidences for 'counterfeit'
-  final double authScore; // capped to [0,1], used for averaging
-  final double fakeScore; // capped to [0,1], used for averaging
+  final double authScore; // highest confidence box for 'authentic'
+  final double fakeScore; // highest confidence box for 'counterfeit'
+  final List<DetectionBox> detections;
   PerImageScores({
     required this.authSum,
     required this.fakeSum,
     required this.authScore,
     required this.fakeScore,
+    required this.detections,
   });
+}
+
+class DetectionBox {
+  final double left;
+  final double top;
+  final double right;
+  final double bottom;
+  final double confidence;
+  final String label;
+
+  const DetectionBox({
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+    required this.confidence,
+    required this.label,
+  });
+
+  factory DetectionBox.fromResult(ResultObjectDetection detection) {
+    final rect = detection.rect;
+    double left = rect.left;
+    double top = rect.top;
+    double right = rect.right;
+    double bottom = rect.bottom;
+
+    if (right < left) {
+      final temp = left;
+      left = right;
+      right = temp;
+    }
+    if (bottom < top) {
+      final temp = top;
+      top = bottom;
+      bottom = temp;
+    }
+
+    String normalizeLabel() {
+      final raw = (detection.className ?? '').trim().toLowerCase();
+      if (raw.isEmpty) {
+        return 'detected';
+      }
+      return raw;
+    }
+
+    return DetectionBox(
+      left: left.clamp(0.0, 1.0),
+      top: top.clamp(0.0, 1.0),
+      right: right.clamp(0.0, 1.0),
+      bottom: bottom.clamp(0.0, 1.0),
+      confidence: detection.score.clamp(0.0, 1.0).toDouble(),
+      label: normalizeLabel(),
+    );
+  }
+
+  double get width => (right - left).clamp(0.0, 1.0);
+  double get height => (bottom - top).clamp(0.0, 1.0);
 }
 
 const double kMinBoxConf = 0.50; // ignore boxes below this conf entirely
@@ -47,11 +106,11 @@ class ConflictDetectionException implements Exception {
 }
 
 class MultipleItemsDetectedException implements Exception {
-  final String location; // "FRONT" or "BACK"
+  final String location; // Human-readable slot label (e.g., "Image 1")
   MultipleItemsDetectedException(this.location);
 
   @override
-  String toString() => 'Multiple medicine packs detected in the $location image.';
+  String toString() => 'Multiple medicine packs detected in $location.';
 }
 
 class MedicineMismatchException implements Exception {
@@ -66,16 +125,20 @@ class MedicineMismatchException implements Exception {
 class AnalysisResult {
   final double avgAuthenticScore;      // 0..1 (from capped sums)
   final double avgCounterfeitScore;    // 0..1 (from capped sums)
-  final double frontAuthenticScore;
-  final double backAuthenticScore;
+  final double firstAuthenticScore;
+  final double secondAuthenticScore;
   final String finalLabel;    // 'authentic' | 'counterfeit' | 'inconclusive'
+  final List<DetectionBox> firstDetections;
+  final List<DetectionBox> secondDetections;
 
   AnalysisResult({
     required this.avgAuthenticScore,
     required this.avgCounterfeitScore,
-    required this.frontAuthenticScore,
-    required this.backAuthenticScore,
+    required this.firstAuthenticScore,
+    required this.secondAuthenticScore,
     required this.finalLabel,
+    required this.firstDetections,
+    required this.secondDetections,
   });
 }
 
@@ -87,9 +150,9 @@ class IdentResult {
 }
 
 class IdentPair {
-  final IdentResult front;
-  final IdentResult back;
-  const IdentPair({required this.front, required this.back});
+  final IdentResult first;
+  final IdentResult second;
+  const IdentPair({required this.first, required this.second});
 }
 
 // Decision container for a single image vs selected medicine
@@ -249,13 +312,12 @@ class ModelService {
     // Find the detection with highest confidence
     ResultObjectDetection bestDetection = dets.first;
     for (final det in dets) {
-      if ((det.score ?? 0.0) > (bestDetection.score ?? 0.0)) {
+      if (det.score > bestDetection.score) {
         bestDetection = det;
       }
     }
 
     final detectedClass = bestDetection.className?.toLowerCase().trim() ?? '';
-    final confidence = bestDetection.score ?? 0.0;
 
     // Map detected class to medicine name
     String medicineName;
@@ -299,13 +361,13 @@ class ModelService {
 
     ResultObjectDetection bestDetection = dets.first;
     for (final det in dets) {
-      if ((det.score ?? 0.0) > (bestDetection.score ?? 0.0)) {
+      if (det.score > bestDetection.score) {
         bestDetection = det;
       }
     }
 
     final detectedClass = bestDetection.className?.toLowerCase().trim() ?? '';
-    final conf = (bestDetection.score ?? 0.0).clamp(0.0, 1.0);
+    final conf = bestDetection.score.clamp(0.0, 1.0).toDouble();
 
     String name;
     switch (detectedClass) {
@@ -321,10 +383,10 @@ class ModelService {
   }
 
   // Identify from both images; returns both results and a recommended decision
-  Future<IdentPair> identifyBoth({required File front, required File back}) async {
-    final f = await identifyOne(front);
-    final b = await identifyOne(back);
-    return IdentPair(front: f, back: b);
+  Future<IdentPair> identifyBoth({required File first, required File second}) async {
+    final f = await identifyOne(first);
+    final b = await identifyOne(second);
+    return IdentPair(first: f, second: b);
   }
 
   // Return max confidence per class for an image (identifier model)
@@ -360,8 +422,8 @@ class ModelService {
     for (final d in dets) {
       final name = mapName(d.className ?? '');
       if (name == 'unknown') continue;
-      final conf = (d.score ?? 0.0).clamp(0.0, 1.0);
-      if (conf > (scores[name] ?? 0.0)) {
+      final conf = d.score.clamp(0.0, 1.0).toDouble();
+      if (conf > scores[name]!) {
         scores[name] = conf;
       }
     }
@@ -369,7 +431,7 @@ class ModelService {
     return scores;
   }
 
-  // Simple front-check style: take top-1 prediction and compare to selected
+  // Simple first-image check style: take top-1 prediction and compare to selected
   Future<IdentDecision> identifySelected(File image, String selected) async {
     await _ensureIdentifierLoaded();
 
@@ -386,11 +448,11 @@ class ModelService {
 
     ResultObjectDetection best = dets.first;
     for (final d in dets) {
-      if ((d.score ?? 0.0) > (best.score ?? 0.0)) best = d;
+      if (d.score > best.score) best = d;
     }
     final rawName = (best.className ?? '').trim();
     final bestName = rawName.isEmpty ? 'unknown' : rawName;
-    final conf = (best.score ?? 0.0).clamp(0.0, 1.0);
+    final conf = best.score.clamp(0.0, 1.0).toDouble();
 
     final bestNorm = bestName.toLowerCase();
     final selectedNorm = selected.toLowerCase();
@@ -406,16 +468,28 @@ class ModelService {
     required File imageFile,
     String tag = 'image',
   }) async {
-    final bytes = await imageFile.readAsBytes();
-    final dets = await model.getImagePrediction(
-      bytes,
-      minimumScore: kMinBoxConf,
-      iOUThreshold: 0.45,
-    ) as List<ResultObjectDetection>;
+    String labelForTag(String value) {
+      switch (value.toLowerCase()) {
+        case 'first':
+          return 'Image 1';
+        case 'second':
+          return 'Image 2';
+        default:
+          if (value.isEmpty) return 'this image';
+          return value[0].toUpperCase() + value.substring(1);
+      }
+    }
+
+    final dets = await _runDetections(model: model, imageFile: imageFile);
+    final detectionBoxes = dets.map(DetectionBox.fromResult).toList();
 
     final strongBoxes = dets
-        .where((d) => (d.score ?? 0.0) >= kMultiItemConf)
+        .where((d) => d.score >= kMultiItemConf)
         .toList();
+
+    if (strongBoxes.length > 1) {
+      throw MultipleItemsDetectedException(labelForTag(tag));
+    }
 
     double iou(ResultObjectDetection a, ResultObjectDetection b) {
       final ax1 = a.rect.left,   ay1 = a.rect.top;
@@ -465,23 +539,27 @@ class ModelService {
 
       if (clusters > 1) {
         print('[ModelService][$tag] multiple packs detected: clusters=$clusters');
-        throw MultipleItemsDetectedException(tag.toUpperCase());
+        throw MultipleItemsDetectedException(labelForTag(tag));
       }
     }
 
     double authSum = 0.0;
     double fakeSum = 0.0;
+    double bestAuth = 0.0;
+    double bestFake = 0.0;
     bool authHasStrong = false;
     bool fakeHasStrong = false;
 
     for (final d in dets) {
       final name = (d.className ?? '').toLowerCase().trim();
-      final conf = (d.score ?? 0.0).clamp(0.0, 1.0);
+      final conf = d.score.clamp(0.0, 1.0).toDouble();
       if (name == 'authentic') {
         authSum += conf;
+        if (conf > bestAuth) bestAuth = conf;
         if (conf >= kStrongBoxConf) authHasStrong = true;
       } else if (name == 'counterfeit') {
         fakeSum += conf;
+        if (conf > bestFake) bestFake = conf;
         if (conf >= kStrongBoxConf) fakeHasStrong = true;
       }
     }
@@ -494,36 +572,49 @@ class ModelService {
       throw ConflictDetectionException();
     }
 
-    // Evidence scores for averaging/display: cap to [0,1]
-    final authScore = authSum.clamp(0.0, 1.0);
-    final fakeScore = fakeSum.clamp(0.0, 1.0);
-
-    // Per-image verdict (your 0.75 rule)
-    final perImageVerdict =
-    (authScore >= ModelService.decisionThreshold) ? 'authentic'
-        : (fakeScore >= ModelService.decisionThreshold) ? 'counterfeit'
-        : 'inconclusive';
-
     return PerImageScores(
       authSum: authSum,
       fakeSum: fakeSum,
-      authScore: authScore,
-      fakeScore: fakeScore,
+      authScore: bestAuth,
+      fakeScore: bestFake,
+      detections: detectionBoxes,
     );
+  }
+
+  Future<List<DetectionBox>> detectBoxes({
+    required String medicine,
+    required File image,
+  }) async {
+    await _ensureLoaded(medicine);
+    final model = _loaded[medicine];
+    final dets = await _runDetections(model: model, imageFile: image);
+    return dets.map(DetectionBox.fromResult).toList();
+  }
+
+  Future<List<ResultObjectDetection>> _runDetections({
+    required dynamic model,
+    required File imageFile,
+  }) async {
+    final bytes = await imageFile.readAsBytes();
+    return await model.getImagePrediction(
+      bytes,
+      minimumScore: kMinBoxConf,
+      iOUThreshold: 0.45,
+    ) as List<ResultObjectDetection>;
   }
 
   // analyze both images and average the scores ----
   Future<AnalysisResult> analyzeBoth({
     required String medicine,
-    required File front,
-    required File back,
+    required File first,
+    required File second,
   }) async {
     await _ensureLoaded(medicine);
     final model = _loaded[medicine];
 
     // May throw ConflictDetectionException if an image contains both classes
-    final f = await _scoreImageYolo(model: model, imageFile: front, tag: 'front');
-    final b = await _scoreImageYolo(model: model, imageFile: back,  tag: 'back');
+    final f = await _scoreImageYolo(model: model, imageFile: first, tag: 'first');
+    final b = await _scoreImageYolo(model: model, imageFile: second,  tag: 'second');
 
     // Average the capped evidence scores (not normalized)
     final avgAuth = ((f.authScore + b.authScore) / 2.0).clamp(0.0, 1.0);
@@ -545,9 +636,11 @@ class ModelService {
     return AnalysisResult(
       avgAuthenticScore: avgAuth,
       avgCounterfeitScore: avgFake,
-      frontAuthenticScore: f.authScore,
-      backAuthenticScore:  b.authScore,
+      firstAuthenticScore: f.authScore,
+      secondAuthenticScore:  b.authScore,
       finalLabel: label,
+      firstDetections: f.detections,
+      secondDetections: b.detections,
     );
   }
 }
