@@ -602,23 +602,15 @@ class _ResultsScreenState extends State<ResultsScreen>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DialogImagePreview(
-                            label: 'Image 1',
-                            data: data.first,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _DialogImagePreview(
-                            label: 'Image 2',
-                            data: data.second,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 16),
+                    _DialogImagePreview(
+                      label: 'Image 1',
+                      data: data.first,
+                    ),
+                    const SizedBox(height: 24),
+                    _DialogImagePreview(
+                      label: 'Image 2',
+                      data: data.second,
                     ),
                   ],
                 );
@@ -1241,37 +1233,47 @@ class _DialogImagePreview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            if (data != null && data!.detections.isNotEmpty)
+              _DetectionLabelChip(
+                detection: data!.detections.reduce(
+                  (a, b) => a.confidence >= b.confidence ? a : b,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 8),
-        AspectRatio(
-          aspectRatio: data?.aspectRatio ?? (4 / 3),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(18),
-            ),
+        ClipRRect(
+          child: AspectRatio(
+            aspectRatio: 3 / 2,
             child: data == null
-                ? const _DialogImagePlaceholder()
-                : ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.file(
-                          data!.image,
-                          fit: BoxFit.cover,
+                ? Container(color: Colors.grey.shade200, child: const _DialogImagePlaceholder())
+                : Stack(
+                    fit: StackFit.expand,
+                    clipBehavior: Clip.none,
+                    children: [
+                      Image.file(
+                        data!.image,
+                        fit: BoxFit.cover,
+                      ),
+                      if (data!.detections.isNotEmpty)
+                        Positioned.fill(
+                          child: _DetectionOverlay(
+                            detections: data!.detections,
+                          ),
                         ),
-                        if (data!.detections.isNotEmpty)
-                          _DetectionOverlay(detections: data!.detections),
-                      ],
-                    ),
+                    ],
                   ),
           ),
         ),
@@ -1309,22 +1311,6 @@ class _DetectionOverlay extends StatelessWidget {
   final List<DetectionBox> detections;
   const _DetectionOverlay({required this.detections});
 
-  Color _colorForLabel(String label) {
-    switch (label) {
-      case 'authentic':
-        return const Color(0xFF4CAF50);
-      case 'counterfeit':
-        return const Color(0xFFFF5252);
-      default:
-        return const Color(0xFF4285F4);
-    }
-  }
-
-  String _formatLabel(String label) {
-    if (label.isEmpty) return 'Detected';
-    return label[0].toUpperCase() + label.substring(1);
-  }
-
   @override
   Widget build(BuildContext context) {
     if (detections.isEmpty) return const SizedBox.shrink();
@@ -1334,14 +1320,13 @@ class _DetectionOverlay extends StatelessWidget {
         final width = constraints.maxWidth;
         final height = constraints.maxHeight;
         return Stack(
+          clipBehavior: Clip.none,
           children: detections.map((box) {
-            final color = _colorForLabel(box.label);
+            final color = _detectionColor(box.label);
             final left = (box.left.clamp(0.0, 1.0)) * width;
             final top = (box.top.clamp(0.0, 1.0)) * height;
             final boxWidth = (box.width.clamp(0.0, 1.0)) * width;
             final boxHeight = (box.height.clamp(0.0, 1.0)) * height;
-            final labelText =
-                '${_formatLabel(box.label)} ${(box.confidence * 100).round()}%';
 
             return Stack(
               clipBehavior: Clip.none,
@@ -1360,38 +1345,6 @@ class _DetectionOverlay extends StatelessWidget {
                     ),
                   ),
                 ),
-                Positioned(
-                  left: left,
-                  top: top - 18,
-                  child: IgnorePointer(
-                    ignoring: true,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.95),
-                        borderRadius: BorderRadius.zero,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        labelText,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
               ],
             );
           }).toList(),
@@ -1399,6 +1352,56 @@ class _DetectionOverlay extends StatelessWidget {
       },
     );
   }
+}
+
+class _DetectionLabelChip extends StatelessWidget {
+  final DetectionBox detection;
+  const _DetectionLabelChip({required this.detection});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _detectionColor(detection.label);
+    final text =
+        '${_formatDetectionLabel(detection.label)} ${(detection.confidence * 100).round()}%';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.95),
+        borderRadius: BorderRadius.zero,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+Color _detectionColor(String label) {
+  switch (label) {
+    case 'authentic':
+      return const Color(0xFF4CAF50);
+    case 'counterfeit':
+      return const Color(0xFFFF5252);
+    default:
+      return const Color(0xFF4285F4);
+  }
+}
+
+String _formatDetectionLabel(String label) {
+  if (label.isEmpty) return 'Detected';
+  return label[0].toUpperCase() + label.substring(1);
 }
 
 class _InconclusiveReasons extends StatefulWidget {
